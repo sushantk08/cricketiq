@@ -57,3 +57,9 @@ Project initialization in progress.
    ```text
    http://127.0.0.1:8000/docs
    ```
+
+## Database Setup
+1. Ensure PostgreSQL is installed and running locally.
+2. Create the application database:
+   ```bash
+   createdb cricketiq
