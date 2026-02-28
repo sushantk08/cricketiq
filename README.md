@@ -68,3 +68,5 @@ Project initialization in progress.
 
 ### Authentication
 - `POST /api/auth/register` — Register a new user account with role selection (`FAN`, `ANALYST`, `COACH`, `ADMIN`).
+- `POST /api/auth/login` — Authenticate credentials and receive a JWT Bearer access token.
+- `GET /api/auth/me` — Retrieve the current authenticated user profile (requires Bearer token).
