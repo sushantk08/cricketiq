@@ -63,3 +63,8 @@ Project initialization in progress.
 2. Create the application database:
    ```bash
    createdb cricketiq
+
+## API Endpoints
+
+### Authentication
+- `POST /api/auth/register` — Register a new user account with role selection (`FAN`, `ANALYST`, `COACH`, `ADMIN`).
