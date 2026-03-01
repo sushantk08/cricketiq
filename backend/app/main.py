@@ -2,9 +2,9 @@ from fastapi import FastAPI
 
 from backend.app.api.auth import router as auth_router
 from backend.app.database.session import Base, engine
-import backend.app.models.user  # Ensures User model is registered with Base
+import backend.app.models  # Registers all models with Base.metadata
 
-# Create tables if they do not exist
+# Auto-create newly registered database tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(

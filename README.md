@@ -70,3 +70,10 @@ Project initialization in progress.
 - `POST /api/auth/register` — Register a new user account with role selection (`FAN`, `ANALYST`, `COACH`, `ADMIN`).
 - `POST /api/auth/login` — Authenticate credentials and receive a JWT Bearer access token.
 - `GET /api/auth/me` — Retrieve the current authenticated user profile (requires Bearer token).
+
+## Database Schema (Relational)
+- `users`: Authentication, credentials, and user roles (`FAN`, `ANALYST`, `COACH`, `ADMIN`).
+- `teams`: Cricket teams with names and codes.
+- `players`: Cricket players with roles, batting styles, bowling styles, and team affiliations.
+- `venues`: Match grounds with city and country details.
+- `matches`: Match fixtures with team relationships, status, toss details, and venue.
