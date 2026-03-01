@@ -77,3 +77,5 @@ Project initialization in progress.
 - `players`: Cricket players with roles, batting styles, bowling styles, and team affiliations.
 - `venues`: Match grounds with city and country details.
 - `matches`: Match fixtures with team relationships, status, toss details, and venue.
+- `innings`: Match innings records (runs, wickets, total overs, batting/bowling teams).
+- `deliveries`: Ball-by-ball delivery event data with batter, bowler, runs, extras, wickets, and cumulative progression state.
