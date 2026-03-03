@@ -63,6 +63,9 @@ Project initialization in progress.
 2. Create the application database:
    ```bash
    createdb cricketiq
+3. Seed sample cricket data (teams, players, venue, match, and deliveries):
+   ```bash
+   python -m backend.app.database.seed
 
 ## API Endpoints
 
