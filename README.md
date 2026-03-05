@@ -82,3 +82,9 @@ Project initialization in progress.
 - `matches`: Match fixtures with team relationships, status, toss details, and venue.
 - `innings`: Match innings records (runs, wickets, total overs, batting/bowling teams).
 - `deliveries`: Ball-by-ball delivery event data with batter, bowler, runs, extras, wickets, and cumulative progression state.
+
+### Matches
+- `GET /api/matches` — List all matches with team fixtures and venues.
+- `GET /api/matches/{id}` — Retrieve detailed match overview.
+- `GET /api/matches/{id}/scorecard` — Compute and retrieve the complete innings scorecard (batting figures, bowling figures, and totals).
+- `GET /api/matches/{id}/deliveries` — Retrieve the ordered ball-by-ball delivery event stream.

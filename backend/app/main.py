@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 
 from backend.app.api.auth import router as auth_router
+from backend.app.api.matches import router as matches_router
 from backend.app.database.session import Base, engine
-import backend.app.models  # Registers all models with Base.metadata
+import backend.app.models
 
-# Auto-create newly registered database tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -14,6 +14,7 @@ app = FastAPI(
 )
 
 app.include_router(auth_router)
+app.include_router(matches_router)
 
 
 @app.get("/")
