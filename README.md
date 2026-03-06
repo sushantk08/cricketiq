@@ -88,3 +88,8 @@ Project initialization in progress.
 - `GET /api/matches/{id}` — Retrieve detailed match overview.
 - `GET /api/matches/{id}/scorecard` — Compute and retrieve the complete innings scorecard (batting figures, bowling figures, and totals).
 - `GET /api/matches/{id}/deliveries` — Retrieve the ordered ball-by-ball delivery event stream.
+
+### Players & Analytics
+- `GET /api/players` — List players with optional `team_id` and `role` filters.
+- `GET /api/players/{id}` — Get player profile details.
+- `GET /api/players/{id}/stats` — Compute granular batting/bowling statistics (averages, strike rates, dot %, boundary %, and phase performance across Powerplay, Middle, and Death overs).

@@ -1,4 +1,5 @@
 import random
+from sqlalchemy import text
 from backend.app.database.session import SessionLocal
 from backend.app.models.cricket import (
     Delivery,
@@ -13,12 +14,14 @@ from backend.app.models.cricket import (
 def seed_cricket_data():
     db = SessionLocal()
     try:
-        # Check if already seeded to prevent duplicates
-        if db.query(Match).first():
-            print("Database already contains match data. Skipping seeding.")
-            return
-
-        print("Seeding sample cricket data...")
+        print("Resetting database and re-seeding with ID sequences at 1...")
+        db.execute(
+            text(
+                "TRUNCATE TABLE deliveries, innings, matches, players, teams,"
+                " venues RESTART IDENTITY CASCADE;"
+            )
+        )
+        db.commit()
 
         # 1. Create Teams
         ind = Team(name="India", short_name="IND")
@@ -191,9 +194,7 @@ def seed_cricket_data():
         db.commit()
 
         # 3. Create Venue
-        venue = Venue(
-            name="Wankhede Stadium", city="Mumbai", country="India"
-        )
+        venue = Venue(name="Wankhede Stadium", city="Mumbai", country="India")
         db.add(venue)
         db.commit()
         db.refresh(venue)
@@ -214,7 +215,7 @@ def seed_cricket_data():
         db.commit()
         db.refresh(match)
 
-        # 5. Helper function to generate 20 overs of ball-by-ball deliveries
+        # 5. Innings and Delivery Generator
         def generate_innings(
             innings_no,
             batting_team_id,
@@ -237,9 +238,7 @@ def seed_cricket_data():
             db.refresh(innings)
 
             bowlers = [
-                p
-                for p in bowling_squad
-                if p.role in ["BOWLER", "ALL_ROUNDER"]
+                p for p in bowling_squad if p.role in ["BOWLER", "ALL_ROUNDER"]
             ]
             striker_idx = 0
             non_striker_idx = 1
@@ -249,8 +248,7 @@ def seed_cricket_data():
             curr_wickets = 0
             deliveries = []
 
-            # Seed random generator for predictable realistic stats
-            rng = random.Random(42 + innings_no)
+            rng = random.Random(100 + innings_no)
 
             for over in range(20):
                 bowler = bowlers[over % len(bowlers)]
@@ -262,30 +260,26 @@ def seed_cricket_data():
                     ):
                         break
 
-                    # Simulate delivery event
                     rand_val = rng.random()
                     is_wicket = False
                     dismissal = None
                     runs = 0
+                    current_striker = batting_squad[striker_idx]
                     player_out_id = None
 
-                    if rand_val < 0.05 and curr_wickets < 10:
-                        # Wicket
+                    if rand_val < 0.045 and curr_wickets < 10:
                         is_wicket = True
                         dismissal = rng.choice(["caught", "bowled", "lbw"])
-                        player_out_id = batting_squad[striker_idx].id
+                        player_out_id = current_striker.id
                         curr_wickets += 1
-                        if next_batter_idx < len(batting_squad):
-                            striker_idx = next_batter_idx
-                            next_batter_idx += 1
-                    elif rand_val < 0.40:
+                    elif rand_val < 0.38:
                         runs = 0  # Dot ball
-                    elif rand_val < 0.72:
+                    elif rand_val < 0.70:
                         runs = 1  # Single
-                    elif rand_val < 0.85:
-                        runs = 2  # Two
-                    elif rand_val < 0.95:
-                        runs = 4  # Boundary
+                    elif rand_val < 0.83:
+                        runs = 2  # Two runs
+                    elif rand_val < 0.94:
+                        runs = 4  # Four
                     else:
                         runs = 6  # Six
 
@@ -296,7 +290,7 @@ def seed_cricket_data():
                         innings_id=innings.id,
                         over_number=over,
                         ball_number=ball,
-                        batter_id=batting_squad[striker_idx].id,
+                        batter_id=current_striker.id,
                         bowler_id=bowler.id,
                         non_striker_id=batting_squad[non_striker_idx].id,
                         runs_batter=runs,
@@ -309,14 +303,19 @@ def seed_cricket_data():
                     )
                     deliveries.append(deliv)
 
-                    # Rotate strike on odd runs
-                    if runs in [1, 3]:
-                        striker_idx, non_striker_idx = (
-                            non_striker_idx,
-                            striker_idx,
-                        )
+                    # Update striker AFTER delivery has been created
+                    if is_wicket:
+                        if next_batter_idx < len(batting_squad):
+                            striker_idx = next_batter_idx
+                            next_batter_idx += 1
+                    else:
+                        if runs in [1, 3]:
+                            striker_idx, non_striker_idx = (
+                                non_striker_idx,
+                                striker_idx,
+                            )
 
-                # End of over: rotate strike
+                # End of over strike rotation
                 striker_idx, non_striker_idx = non_striker_idx, striker_idx
 
             db.add_all(deliveries)
@@ -325,11 +324,10 @@ def seed_cricket_data():
             db.commit()
             return curr_runs
 
-        # Innings 1: India batting, Australia bowling
+        # Generate both innings
         ind_score = generate_innings(
             1, ind.id, aus.id, ind_players, aus_players
         )
-        # Innings 2: Australia chasing India's target
         generate_innings(
             2,
             aus.id,
@@ -339,7 +337,7 @@ def seed_cricket_data():
             target_runs=ind_score,
         )
 
-        print("Sample cricket data seeded successfully!")
+        print("Seeded successfully with ID sequences reset to 1!")
     finally:
         db.close()
 
