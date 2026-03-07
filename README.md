@@ -93,3 +93,7 @@ Project initialization in progress.
 - `GET /api/players` — List players with optional `team_id` and `role` filters.
 - `GET /api/players/{id}` — Get player profile details.
 - `GET /api/players/{id}/stats` — Compute granular batting/bowling statistics (averages, strike rates, dot %, boundary %, and phase performance across Powerplay, Middle, and Death overs).
+
+### Machine Learning Predictions
+- `POST /api/predictions/win-probability` — Calculate win percentage for any custom match state (runs required, balls remaining, wickets in hand).
+- `GET /api/predictions/matches/{id}/curve` — Retrieve the ball-by-ball win probability progression curve for a match chase.
