@@ -97,3 +97,6 @@ Project initialization in progress.
 ### Machine Learning Predictions
 - `POST /api/predictions/win-probability` — Calculate win percentage for any custom match state (runs required, balls remaining, wickets in hand).
 - `GET /api/predictions/matches/{id}/curve` — Retrieve the ball-by-ball win probability progression curve for a match chase.
+
+### Match Analytics & Turning Points
+- `GET /api/matches/{id}/turning-points` — Detect and rank significant match inflection points by win-probability shift ($\Delta P$), wickets, and boundary momentum.
