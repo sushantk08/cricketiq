@@ -1,4 +1,5 @@
 from backend.app.models.cricket import (
+    DecisionReplayRecord,
     Delivery,
     Innings,
     Match,
@@ -17,4 +18,5 @@ __all__ = [
     "Match",
     "Innings",
     "Delivery",
+    "DecisionReplayRecord",
 ]

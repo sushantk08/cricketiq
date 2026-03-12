@@ -5,6 +5,7 @@ from backend.app.api.auth import router as auth_router
 from backend.app.api.matches import router as matches_router
 from backend.app.api.players import router as players_router
 from backend.app.api.predictions import router as predictions_router
+from backend.app.api.replay import router as replay_router
 from backend.app.database.session import Base, engine
 import backend.app.models
 
@@ -21,6 +22,7 @@ app.include_router(matches_router)
 app.include_router(players_router)
 app.include_router(predictions_router)
 app.include_router(analytics_router)
+app.include_router(replay_router)
 
 
 @app.get("/")

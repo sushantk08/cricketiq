@@ -100,3 +100,9 @@ Project initialization in progress.
 
 ### Match Analytics & Turning Points
 - `GET /api/matches/{id}/turning-points` — Detect and rank significant match inflection points by win-probability shift ($\Delta P$), wickets, and boundary momentum.
+
+
+### Decision Replay (Signature "What-If" Analysis)
+- `GET /api/matches/{id}/decision-points` — List high-leverage tactical moments available for replay.
+- `POST /api/replay/simulate` — Simulate a counterfactual decision (e.g. alternate bowler in the 17th over) and compare expected runs, win probability, and decision impact ($\Delta \text{Win\%}$).
+- `GET /api/replay/{id}` — Retrieve a previously saved Decision Replay analysis.

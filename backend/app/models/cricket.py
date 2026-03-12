@@ -157,3 +157,35 @@ class Delivery(Base):
     player_dismissed = relationship(
         "Player", foreign_keys=[player_dismissed_id]
     )
+
+class DecisionReplayRecord(Base):
+    __tablename__ = "decision_replays"
+
+    id = Column(Integer, primary_key=True, index=True)
+    match_id = Column(Integer, ForeignKey("matches.id"), nullable=False)
+    over_number = Column(Integer, nullable=False)
+    actual_bowler_id = Column(
+        Integer, ForeignKey("players.id"), nullable=False
+    )
+    alternative_bowler_id = Column(
+        Integer, ForeignKey("players.id"), nullable=False
+    )
+    batter_id = Column(Integer, ForeignKey("players.id"), nullable=False)
+
+    actual_win_prob = Column(Float, nullable=False)
+    alternative_win_prob = Column(Float, nullable=False)
+    decision_impact = (
+        Column(Float, nullable=False)
+    )  # Alternative win % - Actual win %
+    expected_runs_actual = Column(Float, nullable=False)
+    expected_runs_alternative = Column(Float, nullable=False)
+    decision_quality_score = Column(Float, nullable=False)  # 0 to 100
+    explanation = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    match = relationship("Match")
+    actual_bowler = relationship("Player", foreign_keys=[actual_bowler_id])
+    alternative_bowler = relationship(
+        "Player", foreign_keys=[alternative_bowler_id]
+    )
+    batter = relationship("Player", foreign_keys=[batter_id])
