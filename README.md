@@ -106,3 +106,6 @@ Project initialization in progress.
 - `GET /api/matches/{id}/decision-points` — List high-leverage tactical moments available for replay.
 - `POST /api/replay/simulate` — Simulate a counterfactual decision (e.g. alternate bowler in the 17th over) and compare expected runs, win probability, and decision impact ($\Delta \text{Win\%}$).
 - `GET /api/replay/{id}` — Retrieve a previously saved Decision Replay analysis.
+
+### Scenario Simulator
+- `POST /api/scenarios/simulate` — Alter match state variables (score, overs, wickets, target) and compute projected scores, win probability, required run rates, and risk assessments.
