@@ -7,6 +7,7 @@ from backend.app.api.players import router as players_router
 from backend.app.api.predictions import router as predictions_router
 from backend.app.api.replay import router as replay_router
 from backend.app.api.scenarios import router as scenarios_router
+from backend.app.api.strategy import router as strategy_router
 from backend.app.database.session import Base, engine
 import backend.app.models
 
@@ -25,6 +26,7 @@ app.include_router(predictions_router)
 app.include_router(analytics_router)
 app.include_router(replay_router)
 app.include_router(scenarios_router)
+app.include_router(strategy_router)
 
 
 @app.get("/")

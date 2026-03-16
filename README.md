@@ -109,3 +109,8 @@ Project initialization in progress.
 
 ### Scenario Simulator
 - `POST /api/scenarios/simulate` — Alter match state variables (score, overs, wickets, target) and compute projected scores, win probability, required run rates, and risk assessments.
+
+### Strategy & Matchups
+- `GET /api/matchups?batter_id={id}&bowler_id={id}` — Head-to-head matchup statistics (runs, balls faced, strike rate, dismissals, advantage classification).
+- `POST /api/strategy/bowling` — Rank and recommend the best bowling options against a specific batter in a chosen phase.
+- `POST /api/strategy/batting` — Recommend tactical batting approach (attack, strike rotation, consolidation) against an active bowler.
