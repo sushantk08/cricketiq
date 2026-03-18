@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from backend.app.api.ai import router as ai_router
 from backend.app.api.analytics import router as analytics_router
 from backend.app.api.auth import router as auth_router
 from backend.app.api.matches import router as matches_router
@@ -27,6 +28,7 @@ app.include_router(analytics_router)
 app.include_router(replay_router)
 app.include_router(scenarios_router)
 app.include_router(strategy_router)
+app.include_router(ai_router)
 
 
 @app.get("/")

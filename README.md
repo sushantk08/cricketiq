@@ -114,3 +114,8 @@ Project initialization in progress.
 - `GET /api/matchups?batter_id={id}&bowler_id={id}` — Head-to-head matchup statistics (runs, balls faced, strike rate, dismissals, advantage classification).
 - `POST /api/strategy/bowling` — Rank and recommend the best bowling options against a specific batter in a chosen phase.
 - `POST /api/strategy/batting` — Recommend tactical batting approach (attack, strike rotation, consolidation) against an active bowler.
+
+### AI Analyst & Match Reports
+- `POST /api/ai/analyze-match` — Generate an AI match report synthesizing ground-truth database facts, top performers, and critical turning points.
+- `POST /api/ai/analyze-player` — Generate scouting evaluations and tactical recommendations for a player.
+- `POST /api/ai/ask` — Natural-language Q&A grounded in verified match analytics.
