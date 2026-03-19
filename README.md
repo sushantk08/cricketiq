@@ -119,3 +119,7 @@ Project initialization in progress.
 - `POST /api/ai/analyze-match` — Generate an AI match report synthesizing ground-truth database facts, top performers, and critical turning points.
 - `POST /api/ai/analyze-player` — Generate scouting evaluations and tactical recommendations for a player.
 - `POST /api/ai/ask` — Natural-language Q&A grounded in verified match analytics.
+
+### External Cricket API Integration
+- `GET /api/sync/external-live` — Preview normalized external match feeds via the Cricket API adapter.
+- `POST /api/sync/matches` — Synchronize and ingest external fixtures into internal PostgreSQL models.
