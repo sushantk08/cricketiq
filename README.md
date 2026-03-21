@@ -123,3 +123,14 @@ Project initialization in progress.
 ### External Cricket API Integration
 - `GET /api/sync/external-live` — Preview normalized external match feeds via the Cricket API adapter.
 - `POST /api/sync/matches` — Synchronize and ingest external fixtures into internal PostgreSQL models.
+
+
+## Frontend Setup
+
+### Prerequisites
+- Node.js 18+ and npm
+
+### Installation & Running
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
