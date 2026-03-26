@@ -50,3 +50,13 @@ export async function fetchPlayers(teamId) {
   if (!res.ok) throw new Error('Failed to fetch players')
   return res.json()
 }
+
+export async function simulateScenario(scenarioData) {
+  const res = await fetch(`${API_BASE}/scenarios/simulate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(scenarioData),
+  })
+  if (!res.ok) throw new Error('Failed to simulate scenario')
+  return res.json()
+}
