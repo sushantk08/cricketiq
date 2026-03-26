@@ -27,15 +27,7 @@ def list_decision_points(match_id: int, db: Session = Depends(get_db)):
 
 @router.post("/api/replay/simulate", response_model=DecisionReplayResponse)
 def run_replay(req: DecisionReplayRequest, db: Session = Depends(get_db)):
-    result = simulate_decision_replay(db, req)
-    if not result:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Could not simulate decision replay for the given parameters"
-            ),
-        )
-    return result
+    return simulate_decision_replay(db, req)
 
 
 @router.get("/api/replay/{replay_id}", response_model=DecisionReplayResponse)
@@ -52,8 +44,8 @@ def get_saved_replay(replay_id: int, db: Session = Depends(get_db)):
         )
 
     disclaimer = (
-        "Statistical estimate derived from historical phase distributions"
-        " and model predictions; does not guarantee counterfactual certainty."
+        "Statistical estimate derived from historical phase distributions and"
+        " model predictions; does not guarantee counterfactual certainty."
     )
 
     return DecisionReplayResponse(
@@ -71,8 +63,7 @@ def get_saved_replay(replay_id: int, db: Session = Depends(get_db)):
         expected_runs_alternative=rec.expected_runs_alternative,
         decision_quality_score=rec.decision_quality_score,
         tactical_verdict=(
-            "Saved Analysis: Decision Impact"
-            f" {rec.decision_impact:+.1f} pts"
+            f"Saved Analysis: Decision Impact {rec.decision_impact:+.1f} pts"
         ),
         explanation=rec.explanation,
         uncertainty_disclaimer=disclaimer,
