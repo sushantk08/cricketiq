@@ -60,3 +60,23 @@ export async function simulateScenario(scenarioData) {
   if (!res.ok) throw new Error('Failed to simulate scenario')
   return res.json()
 }
+
+export async function fetchAIMatchAnalysis(matchId) {
+  const res = await fetch(`${API_BASE}/ai/analyze-match`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ match_id: matchId }),
+  })
+  if (!res.ok) throw new Error('Failed to generate match analysis')
+  return res.json()
+}
+
+export async function askAIAnalyst(question, matchId = null) {
+  const res = await fetch(`${API_BASE}/ai/ask`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, match_id: matchId }),
+  })
+  if (!res.ok) throw new Error('Failed to query AI analyst')
+  return res.json()
+}

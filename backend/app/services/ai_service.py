@@ -15,7 +15,7 @@ from backend.app.services.turning_point_service import detect_turning_points
 
 LLM_API_KEY = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY", "")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.1-8b-instant")
+LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
 
 
 def _get_client():
@@ -167,55 +167,191 @@ def generate_player_analysis(
 def answer_analyst_question(
     db: Session, req: AskAnalystRequest
 ) -> AskAnalystResponse:
-    referenced = []
-    context = ""
-    if req.match_id:
-        match = db.query(Match).filter(Match.id == req.match_id).first()
-        if match:
-            tp = detect_turning_points(db, req.match_id)
-            top_tp = tp.turning_points[0] if tp.turning_points else None
-            referenced.append(f"Match: {match.title}")
-            if top_tp:
-                referenced.append(
-                    f"Top Turning Point: Over {top_tp.display_over} (Swing:"
-                    f" {top_tp.win_prob_delta:+.1f}%)"
-                )
-                context = f"The biggest turning point was in Over {top_tp.display_over} where {top_tp.event_summary} shifted win probability by {top_tp.win_prob_delta:+.1f}%."
+  referenced = []
+  context_blocks = []
+  q_lower = req.question.lower()
 
-    client = _get_client()
-    if client and context:
-        try:
-            completion = client.chat.completions.create(
-                model=LLM_MODEL,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are CricketIQ AI Analyst. Answer using the"
-                            " provided context accurately."
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": (
-                            f"Context: {context}\nQuestion: {req.question}"
-                        ),
-                    },
-                ],
-            )
-            ans = completion.choices[0].message.content.strip()
-        except Exception:
-            ans = (
-                f"Based on CricketIQ data: {context} This was the critical"
-                " phase that decided the outcome."
-            )
-    else:
-        ans = (
-            f"Analysis based on platform telemetry: {context or 'In modern T20 strategy, phase-based bowling matchups and wicket preservation determine win probability shifts.'}"
-        )
+  match = None
+  scorecard = None
+  tp_data = None
 
-    return AskAnalystResponse(
-        question=req.question,
-        answer=ans,
-        referenced_data=referenced or ["CricketIQ Core Historical Telemetry"],
+  if req.match_id:
+    match = db.query(Match).filter(Match.id == req.match_id).first()
+    if match:
+      scorecard = compute_match_scorecard(db, req.match_id)
+      tp_data = detect_turning_points(db, req.match_id)
+      referenced.append(f"Match: {match.title}")
+
+  client = _get_client()
+
+  # Build rich context if match is present
+  if match and scorecard:
+    inn1 = scorecard["innings"][0]
+    inn2 = scorecard["innings"][1]
+
+    # Best performers
+    all_batters = inn1["batting"] + inn2["batting"]
+    best_bat = (
+        max(all_batters, key=lambda b: b["runs"]) if all_batters else None
     )
+
+    all_bowlers = inn1["bowling"] + inn2["bowling"]
+    best_bowl = (
+        max(all_bowlers, key=lambda bw: bw["wickets"]) if all_bowlers else None
+    )
+
+    context_blocks.append(
+        f"Match: {match.title}. Result: {match.winner.name if match.winner else 'Completed'}."
+    )
+    context_blocks.append(
+        f"1st Innings ({inn1['batting_team']}): {inn1['total_runs']}/{inn1['total_wickets']} in {inn1['total_overs']} overs."
+    )
+    context_blocks.append(
+        f"2nd Innings ({inn2['batting_team']}): {inn2['total_runs']}/{inn2['total_wickets']} in {inn2['total_overs']} overs."
+    )
+
+    if best_bat:
+      context_blocks.append(
+          f"Top Scorer: {best_bat['name']} with {best_bat['runs']} runs off {best_bat['balls']} balls (SR: {best_bat['strike_rate']})."
+      )
+    if best_bowl:
+      context_blocks.append(
+          f"Leading Wicket Taker: {best_bowl['name']} ({best_bowl['wickets']}/{best_bowl['runs_conceded']} in {best_bowl['overs']} overs, Economy: {best_bowl['economy']})."
+      )
+
+    if tp_data and tp_data.turning_points:
+      top_tp = tp_data.turning_points[0]
+      context_blocks.append(
+          f"Critical Turning Point: Over {top_tp.display_over} where {top_tp.event_summary} caused a {top_tp.win_prob_delta:+.1f}% win probability swing."
+      )
+      referenced.append(
+          f"Top Turning Point: Over {top_tp.display_over} ({top_tp.win_prob_delta:+.1f}%)"
+      )
+
+  full_context = "\n".join(context_blocks)
+
+  # 1. If live LLM is configured, query the model with the rich context
+  if client and full_context:
+    try:
+      completion = client.chat.completions.create(
+          model=LLM_MODEL,
+          messages=[
+              {
+                  "role": "system",
+                  "content": (
+                      "You are CricketIQ AI Strategy Analyst. Answer the"
+                      " user's specific cricket question using strictly the"
+                      " provided match facts. Keep answers concise (2-4"
+                      " sentences), objective, and direct."
+                  ),
+              },
+              {
+                  "role": "user",
+                  "content": (
+                      f"Match Telemetry:\n{full_context}\n\nQuestion:"
+                      f" {req.question}"
+                  ),
+              },
+          ],
+          temperature=0.3,
+      )
+      return AskAnalystResponse(
+          question=req.question,
+          answer=completion.choices[0].message.content.strip(),
+          referenced_data=referenced or ["CricketIQ Ground Truth Telemetry"],
+      )
+    except Exception as e:
+      print(f"[AI Service] LLM call failed: {e}. Falling back to analytical engine.")
+
+  # 2. Dynamic, Intent-Aware Analytical Fallback
+  if scorecard:
+    inn1 = scorecard["innings"][0]
+    inn2 = scorecard["innings"][1]
+
+    # Intent A: Scorecard requested
+    if "scorecard" in q_lower or "score" in q_lower:
+      ans = (
+          f"Scorecard Summary for {match.title}: "
+          f"{inn1['batting_team']} posted {inn1['total_runs']}/{inn1['total_wickets']} in {inn1['total_overs']} overs. "
+          f"In response, {inn2['batting_team']} finished on {inn2['total_runs']}/{inn2['total_wickets']}. "
+          f"Top individual score was {best_bat['name']} ({best_bat['runs']} off {best_bat['balls']}b), "
+          f"while {best_bowl['name']} led the bowling figures with {best_bowl['wickets']} wickets."
+      )
+      referenced.append("Innings 1 & 2 Scorecards")
+
+    # Intent B: Bowler / Death overs discipline
+    elif (
+        "bowler" in q_lower
+        or "death" in q_lower
+        or "discipline" in q_lower
+        or "economy" in q_lower
+    ):
+      # Find bowler with lowest economy who bowled at least 2 overs
+      all_bowlers = inn1["bowling"] + inn2["bowling"]
+      qualified_bowlers = [b for b in all_bowlers if b["overs"] >= 2.0]
+      most_economical = (
+          min(qualified_bowlers, key=lambda b: b["economy"])
+          if qualified_bowlers
+          else (all_bowlers[0] if all_bowlers else None)
+      )
+      if most_economical:
+        ans = (
+            f"The most disciplined bowler across the match was {most_economical['name']}, "
+            f"conceding only {most_economical['runs_conceded']} runs in {most_economical['overs']} overs "
+            f"(Economy: {most_economical['economy']} RPO) while picking up {most_economical['wickets']} wicket(s)."
+        )
+        referenced.append(
+            f"Bowling Economy Telemetry ({most_economical['name']})"
+        )
+      else:
+        ans = "Bowlers maintained standard phase economy rates throughout the contest."
+
+    # Intent C: Middle overs / Momentum loss
+    elif (
+        "middle" in q_lower
+        or "momentum" in q_lower
+        or "collapse" in q_lower
+        or "lose" in q_lower
+    ):
+      ans = (
+          f"In the middle overs, the bowling side applied pressure through dot-ball compression "
+          f"and key dismissals. With the required run rate escalating beyond 10.5 RPO, "
+          f"the batting side was forced into high-risk shots that triggered wickets."
+      )
+      referenced.append("Phase Run Rate & Wicket Compression")
+
+    # Intent D: Win probability / Turning point
+    elif (
+        "win probability" in q_lower
+        or "turning" in q_lower
+        or "shift" in q_lower
+        or "swing" in q_lower
+    ):
+      if tp_data and tp_data.turning_points:
+        top_tp = tp_data.turning_points[0]
+        ans = (
+            f"The decisive shift in win probability occurred in Over {top_tp.display_over} "
+            f"({top_tp.event_summary}), which produced a {top_tp.win_prob_delta:+.1f}% swing "
+            f"in favor of {match.winner.name if match.winner else 'the defending team'}."
+        )
+      else:
+        ans = "Win probability remained closely balanced throughout the chase phase."
+
+    # General Intent
+    else:
+      ans = (
+          f"{match.winner.name if match.winner else 'The winning team'} secured victory by executing "
+          f"tactical phase plans. Key contributions included {best_bat['name']}'s {best_bat['runs']} runs "
+          f"and {best_bowl['name']}'s {best_bowl['wickets']} wickets."
+      )
+  else:
+    ans = (
+        "CricketIQ telemetry indicates that match leverage is determined by phase-based run rate pressure, "
+        "disciplined death bowling, and high-leverage wicket timing."
+    )
+
+  return AskAnalystResponse(
+      question=req.question,
+      answer=ans,
+      referenced_data=referenced or ["CricketIQ Core Historical Telemetry"],
+  )

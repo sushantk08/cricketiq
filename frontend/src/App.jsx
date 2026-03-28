@@ -6,6 +6,7 @@ import MatchesPage from './pages/MatchesPage'
 import MatchDetailPage from './pages/MatchDetailPage'
 import DecisionReplayPage from './pages/DecisionReplayPage'
 import ScenarioSimulatorPage from './pages/ScenarioSimulatorPage'
+import AIAnalystPage from './pages/AIAnalystPage'
 
 function App() {
   return (
@@ -17,7 +18,7 @@ function App() {
         <Route path="/matches/:id" element={<MatchDetailPage />} />
         <Route path="/replay" element={<DecisionReplayPage />} />
         <Route path="/scenarios" element={<ScenarioSimulatorPage />} />
-        <Route path="/ai-analyst" element={<HomePage />} />
+        <Route path="/ai-analyst" element={<AIAnalystPage />} />
       </Routes>
     </Router>
   )
