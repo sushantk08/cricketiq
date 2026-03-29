@@ -80,3 +80,37 @@ export async function askAIAnalyst(question, matchId = null) {
   if (!res.ok) throw new Error('Failed to query AI analyst')
   return res.json()
 }
+
+export async function registerUser(userData) {
+  const res = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.detail || 'Registration failed')
+  }
+  return res.json()
+}
+
+export async function loginUser(credentials) {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(credentials),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.detail || 'Login failed')
+  }
+  return res.json()
+}
+
+export async function fetchCurrentUser(token) {
+  const res = await fetch(`${API_BASE}/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Failed to fetch user profile')
+  return res.json()
+}

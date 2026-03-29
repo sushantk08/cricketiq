@@ -1,7 +1,8 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Activity, BarChart2, Compass, PlayCircle, Bot } from 'lucide-react'
+import { Activity, BarChart2, Compass, PlayCircle, Bot, LogIn, LogOut, User } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const navLinks = [
   { name: 'Dashboard', path: '/', icon: Activity },
@@ -13,6 +14,7 @@ const navLinks = [
 
 export default function Navbar() {
   const location = useLocation()
+  const { user, logout } = useAuth()
 
   return (
     <nav style={{
@@ -32,11 +34,8 @@ export default function Navbar() {
         justifyContent: 'space-between',
         height: '68px'
       }}>
-        {/* Brand Logo with Animation */}
-        <motion.div
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.98 }}
-        >
+        {/* Logo */}
+        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{
               width: '32px',
@@ -83,7 +82,6 @@ export default function Navbar() {
                 <Icon size={17} />
                 {link.name}
 
-                {/* Animated Active Indicator Pill */}
                 {isActive && (
                   <motion.div
                     layoutId="navbar-indicator"
@@ -101,6 +99,70 @@ export default function Navbar() {
               </Link>
             )
           })}
+        </div>
+
+        {/* User / Auth Indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {user ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{user.full_name || user.email}</div>
+                <span style={{
+                  display: 'inline-block',
+                  padding: '1px 6px',
+                  borderRadius: '4px',
+                  backgroundColor: 'rgba(0, 210, 255, 0.1)',
+                  color: 'var(--accent-cyan)',
+                  fontSize: '0.65rem',
+                  fontWeight: 800
+                }}>
+                  {user.role}
+                </span>
+              </div>
+              <button
+                onClick={logout}
+                title="Log Out"
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Link
+                to="/login"
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-subtle)',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: 'var(--text-main)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <LogIn size={15} /> Log In
+              </Link>
+              <Link
+                to="/register"
+                className="btn-primary"
+                style={{ padding: '8px 14px', fontSize: '0.85rem' }}
+              >
+                Register
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </nav>

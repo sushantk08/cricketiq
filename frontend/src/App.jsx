@@ -1,26 +1,58 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
 import Navbar from './components/Navbar'
+import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/HomePage'
 import MatchesPage from './pages/MatchesPage'
 import MatchDetailPage from './pages/MatchDetailPage'
 import DecisionReplayPage from './pages/DecisionReplayPage'
 import ScenarioSimulatorPage from './pages/ScenarioSimulatorPage'
 import AIAnalystPage from './pages/AIAnalystPage'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
 
 function App() {
   return (
-    <Router>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/matches" element={<MatchesPage />} />
-        <Route path="/matches/:id" element={<MatchDetailPage />} />
-        <Route path="/replay" element={<DecisionReplayPage />} />
-        <Route path="/scenarios" element={<ScenarioSimulatorPage />} />
-        <Route path="/ai-analyst" element={<AIAnalystPage />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Navbar />
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/matches" element={<MatchesPage />} />
+          <Route path="/matches/:id" element={<MatchDetailPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
+          {/* Protected Analytical Routes (Requires ANALYST, COACH, or ADMIN) */}
+          <Route
+            path="/replay"
+            element={
+              <ProtectedRoute allowedRoles={['ANALYST', 'COACH', 'ADMIN']}>
+                <DecisionReplayPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/scenarios"
+            element={
+              <ProtectedRoute allowedRoles={['ANALYST', 'COACH', 'ADMIN']}>
+                <ScenarioSimulatorPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-analyst"
+            element={
+              <ProtectedRoute allowedRoles={['ANALYST', 'COACH', 'ADMIN']}>
+                <AIAnalystPage />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </AuthProvider>
   )
 }
 
