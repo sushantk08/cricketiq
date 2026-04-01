@@ -134,3 +134,9 @@ Project initialization in progress.
 1. Navigate to the frontend directory:
    ```bash
    cd frontend
+
+## Testing
+
+Run the automated test suite with pytest:
+```bash
+pytest backend/tests -v
