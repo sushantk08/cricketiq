@@ -140,3 +140,11 @@ Project initialization in progress.
 Run the automated test suite with pytest:
 ```bash
 pytest backend/tests -v
+
+
+## Docker Deployment
+
+Run the entire full-stack application (PostgreSQL + FastAPI + React/Nginx) with Docker Compose:
+
+```bash
+docker compose up --build
