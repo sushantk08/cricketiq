@@ -148,3 +148,11 @@ Run the entire full-stack application (PostgreSQL + FastAPI + React/Nginx) with 
 
 ```bash
 docker compose up --build
+
+
+## CI/CD Pipeline
+
+Automated workflows via GitHub Actions (`.github/workflows/ci.yml`):
+- **Backend Tests**: Spawns a PostgreSQL container service, seeds data, and executes `pytest`.
+- **Frontend Build**: Validates compilation of React assets and SPA bundle.
+- **Docker Verification**: Verifies multi-container build compilation with `docker compose build`.
