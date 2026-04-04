@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { UserPlus, Shield, AlertCircle } from 'lucide-react'
+import { UserPlus, AlertCircle } from 'lucide-react'
 import PageWrapper from '../components/PageWrapper'
 import { registerUser, loginUser, fetchCurrentUser } from '../services/api'
 import { useAuth } from '../context/AuthContext'
@@ -126,7 +126,6 @@ export default function RegisterPage() {
                 <option value="FAN">FAN (Basic statistics & live odds)</option>
                 <option value="ANALYST">ANALYST (Matchups, Decision Replay, AI)</option>
                 <option value="COACH">COACH (Tactical planning & scenario models)</option>
-                <option value="ADMIN">ADMIN (System management)</option>
               </select>
             </div>
 

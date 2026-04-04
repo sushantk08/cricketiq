@@ -8,7 +8,7 @@ from backend.app.core.security import (
     verify_password,
 )
 from backend.app.database.session import get_db
-from backend.app.models.user import User
+from backend.app.models.user import User, UserRole
 from backend.app.schemas.user import (
     Token,
     UserCreate,
@@ -25,6 +25,17 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
     status_code=status.HTTP_201_CREATED,
 )
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
+    # Security Gate: Prevent public self-registration as ADMIN
+    if user_in.role == UserRole.ADMIN or user_in.role == "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Admin accounts cannot be self-registered. Contact an existing"
+                " administrator."
+            ),
+        )
+
+    # Check if the email is already registered
     existing_user = (
         db.query(User).filter(User.email == user_in.email).first()
     )
@@ -34,11 +45,12 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
             detail="A user with this email already exists.",
         )
 
+    # Hash password and persist user
     new_user = User(
         email=user_in.email,
         hashed_password=hash_password(user_in.password),
         full_name=user_in.full_name,
-        role=user_in.role or "FAN",
+        role=user_in.role or UserRole.FAN,
     )
     db.add(new_user)
     db.commit()
