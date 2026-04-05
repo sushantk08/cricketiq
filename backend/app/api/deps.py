@@ -32,3 +32,17 @@ def get_current_user(
     if user is None or not user.is_active:
         raise credentials_exception
     return user
+
+def require_roles(allowed_roles: list):
+  def role_checker(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role.value not in allowed_roles:
+      raise HTTPException(
+          status_code=status.HTTP_403_FORBIDDEN,
+          detail=(
+              f"Role '{current_user.role.value}' does not have sufficient"
+              " privileges."
+          ),
+      )
+    return current_user
+
+  return role_checker
