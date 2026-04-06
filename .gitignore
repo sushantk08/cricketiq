@@ -27,3 +27,7 @@ dist/
 dist-ssr/
 *.local
 .npm
+
+# Uploaded ID documents
+backend/uploads/
+uploads/

@@ -21,16 +21,13 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
-class TokenPayload(BaseModel):
-    sub: Optional[str] = None
-    role: Optional[str] = None
-
-
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
     full_name: Optional[str] = None
     role: UserRole
+    verification_status: str
+    id_document_url: Optional[str] = None
     is_active: bool
     created_at: datetime
 

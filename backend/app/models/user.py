@@ -11,6 +11,12 @@ class UserRole(str, enum.Enum):
     ADMIN = "ADMIN"
 
 
+class VerificationStatus(str, enum.Enum):
+    APPROVED = "APPROVED"
+    PENDING = "PENDING"
+    REJECTED = "REJECTED"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -23,5 +29,11 @@ class User(Base):
         default=UserRole.FAN,
         nullable=False,
     )
+    verification_status = Column(
+        String,
+        default=VerificationStatus.APPROVED.value,
+        nullable=False,
+    )
+    id_document_url = Column(String, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
