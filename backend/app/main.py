@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.app.api.admin import router as admin_router
 from backend.app.api.ai import router as ai_router
 from backend.app.api.analytics import router as analytics_router
 from backend.app.api.auth import router as auth_router
@@ -14,7 +15,6 @@ from backend.app.api.sync import router as sync_router
 from backend.app.database.session import Base, engine
 import backend.app.models
 
-# Auto-create tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -23,16 +23,15 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Enable CORS for frontend clients
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrict to your domain in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Mount all application routers
+# Register all routers
 app.include_router(auth_router)
 app.include_router(matches_router)
 app.include_router(players_router)
@@ -43,13 +42,14 @@ app.include_router(scenarios_router)
 app.include_router(strategy_router)
 app.include_router(ai_router)
 app.include_router(sync_router)
+app.include_router(admin_router)
 
 
 @app.get("/")
 def root():
-  return {"message": "Welcome to CricketIQ API"}
+    return {"message": "Welcome to CricketIQ API"}
 
 
 @app.get("/health")
 def health_check():
-  return {"status": "healthy", "service": "cricketiq-backend"}
+    return {"status": "healthy", "service": "cricketiq-backend"}
