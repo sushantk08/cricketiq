@@ -11,6 +11,7 @@ import ScenarioSimulatorPage from './pages/ScenarioSimulatorPage'
 import AIAnalystPage from './pages/AIAnalystPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import AdminVerificationsPage from './pages/AdminVerificationsPage'
 
 function App() {
   return (
@@ -25,7 +26,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-          {/* Protected Analytical Routes (Requires ANALYST, COACH, or ADMIN) */}
+          {/* Analytical Routes */}
           <Route
             path="/replay"
             element={
@@ -47,6 +48,16 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['ANALYST', 'COACH', 'ADMIN']}>
                 <AIAnalystPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Verification Portal (ADMIN Only) */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AdminVerificationsPage />
               </ProtectedRoute>
             }
           />

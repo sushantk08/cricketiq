@@ -81,16 +81,36 @@ export async function askAIAnalyst(question, matchId = null) {
   return res.json()
 }
 
-export async function registerUser(userData) {
+export async function registerUser(formData) {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(userData),
+    body: formData, // Browser sets multipart/form-data boundary automatically
   })
   if (!res.ok) {
     const err = await res.json()
     throw new Error(err.detail || 'Registration failed')
   }
+  return res.json()
+}
+
+export async function fetchPendingVerifications(token) {
+  const res = await fetch(`${API_BASE}/admin/pending-verifications`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Failed to fetch pending verifications')
+  return res.json()
+}
+
+export async function verifyUserAccount(token, userId, action) {
+  const res = await fetch(`${API_BASE}/admin/users/${userId}/verify`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ action }),
+  })
+  if (!res.ok) throw new Error('Failed to verify user')
   return res.json()
 }
 

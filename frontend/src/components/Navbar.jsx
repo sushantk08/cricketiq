@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Activity, BarChart2, Compass, PlayCircle, Bot, LogIn, LogOut, User } from 'lucide-react'
+import { Activity, BarChart2, Compass, PlayCircle, Bot, LogIn, LogOut, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const navLinks = [
@@ -57,7 +57,7 @@ export default function Navbar() {
         </motion.div>
 
         {/* Navigation Links */}
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {navLinks.map((link) => {
             const Icon = link.icon
             const isActive = location.pathname === link.path
@@ -99,6 +99,28 @@ export default function Navbar() {
               </Link>
             )
           })}
+
+          {/* Admin Portal Tab (Exclusively visible to ADMIN role) */}
+          {user && user.role === 'ADMIN' && (
+            <Link
+              to="/admin"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                color: location.pathname === '/admin' ? '#ffffff' : 'var(--accent-orange)',
+                backgroundColor: location.pathname === '/admin' ? 'var(--accent-orange)' : 'rgba(255, 122, 0, 0.1)',
+                border: '1px solid rgba(255, 122, 0, 0.3)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <ShieldCheck size={16} /> Admin Portal
+            </Link>
+          )}
         </div>
 
         {/* User / Auth Indicator */}
@@ -106,13 +128,23 @@ export default function Navbar() {
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{user.full_name || user.email}</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>
+                  {user.full_name || user.email}
+                </div>
                 <span style={{
                   display: 'inline-block',
                   padding: '1px 6px',
                   borderRadius: '4px',
-                  backgroundColor: 'rgba(0, 210, 255, 0.1)',
-                  color: 'var(--accent-cyan)',
+                  backgroundColor: user.role === 'ADMIN'
+                    ? 'rgba(255, 122, 0, 0.15)'
+                    : user.role === 'COACH'
+                    ? 'rgba(59, 130, 246, 0.15)'
+                    : 'rgba(0, 210, 255, 0.15)',
+                  color: user.role === 'ADMIN'
+                    ? 'var(--accent-orange)'
+                    : user.role === 'COACH'
+                    ? 'var(--accent-blue)'
+                    : 'var(--accent-cyan)',
                   fontSize: '0.65rem',
                   fontWeight: 800
                 }}>
@@ -130,8 +162,11 @@ export default function Navbar() {
                   color: 'var(--text-muted)',
                   cursor: 'pointer',
                   display: 'flex',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  transition: 'border-color 0.2s ease'
                 }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent-red)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-subtle)'}
               >
                 <LogOut size={16} />
               </button>
