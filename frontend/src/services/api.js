@@ -1,8 +1,15 @@
 const API_BASE = '/api'
 
+// --- MATCHES & LIVE SCORES ---
 export async function fetchMatches() {
   const res = await fetch(`${API_BASE}/matches`)
   if (!res.ok) throw new Error('Failed to fetch matches')
+  return res.json()
+}
+
+export async function fetchLiveScores() {
+  const res = await fetch(`${API_BASE}/matches/live/scores`)
+  if (!res.ok) throw new Error('Failed to fetch live scores')
   return res.json()
 }
 
@@ -24,6 +31,7 @@ export async function fetchMatchTurningPoints(id) {
   return res.json()
 }
 
+// --- DECISION REPLAY & PLAYERS ---
 export async function fetchDecisionPoints(matchId) {
   const res = await fetch(`${API_BASE}/matches/${matchId}/decision-points`)
   if (!res.ok) throw new Error('Failed to fetch decision points')
@@ -51,6 +59,7 @@ export async function fetchPlayers(teamId) {
   return res.json()
 }
 
+// --- SCENARIO SIMULATOR ---
 export async function simulateScenario(scenarioData) {
   const res = await fetch(`${API_BASE}/scenarios/simulate`, {
     method: 'POST',
@@ -61,6 +70,7 @@ export async function simulateScenario(scenarioData) {
   return res.json()
 }
 
+// --- AI ANALYST ---
 export async function fetchAIMatchAnalysis(matchId) {
   const res = await fetch(`${API_BASE}/ai/analyze-match`, {
     method: 'POST',
@@ -81,36 +91,16 @@ export async function askAIAnalyst(question, matchId = null) {
   return res.json()
 }
 
+// --- AUTHENTICATION ---
 export async function registerUser(formData) {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
-    body: formData, // Browser sets multipart/form-data boundary automatically
+    body: formData,
   })
   if (!res.ok) {
     const err = await res.json()
     throw new Error(err.detail || 'Registration failed')
   }
-  return res.json()
-}
-
-export async function fetchPendingVerifications(token) {
-  const res = await fetch(`${API_BASE}/admin/pending-verifications`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  if (!res.ok) throw new Error('Failed to fetch pending verifications')
-  return res.json()
-}
-
-export async function verifyUserAccount(token, userId, action) {
-  const res = await fetch(`${API_BASE}/admin/users/${userId}/verify`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ action }),
-  })
-  if (!res.ok) throw new Error('Failed to verify user')
   return res.json()
 }
 
@@ -132,5 +122,27 @@ export async function fetchCurrentUser(token) {
     headers: { Authorization: `Bearer ${token}` },
   })
   if (!res.ok) throw new Error('Failed to fetch user profile')
+  return res.json()
+}
+
+// --- ADMIN VERIFICATIONS ---
+export async function fetchPendingVerifications(token) {
+  const res = await fetch(`${API_BASE}/admin/pending-verifications`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Failed to fetch pending verifications')
+  return res.json()
+}
+
+export async function verifyUserAccount(token, userId, action) {
+  const res = await fetch(`${API_BASE}/admin/users/${userId}/verify`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ action }),
+  })
+  if (!res.ok) throw new Error('Failed to verify user')
   return res.json()
 }
