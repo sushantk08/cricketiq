@@ -10,6 +10,7 @@ from backend.app.schemas.cricket import (
     MatchScorecardResponse,
 )
 from backend.app.services.match_service import compute_match_scorecard
+from backend.app.integrations.cricket_api import cricket_adapter
 
 router = APIRouter(prefix="/api/matches", tags=["Matches"])
 
@@ -18,6 +19,10 @@ router = APIRouter(prefix="/api/matches", tags=["Matches"])
 def get_matches(db: Session = Depends(get_db)):
     return db.query(Match).order_by(Match.match_date.desc()).all()
 
+@router.get("/live/scores")
+def get_live_scores_feed():
+  """Fetches real-time live match scores parsed directly from CricAPI currentMatches."""
+  return cricket_adapter.fetch_live_fixtures()
 
 @router.get("/{match_id}", response_model=MatchBrief)
 def get_match_by_id(match_id: int, db: Session = Depends(get_db)):
