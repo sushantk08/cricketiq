@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext'
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/HomePage'
+import DashboardPage from './pages/DashboardPage'
 import MatchesPage from './pages/MatchesPage'
 import MatchDetailPage from './pages/MatchDetailPage'
 import DecisionReplayPage from './pages/DecisionReplayPage'
@@ -25,6 +26,15 @@ function App() {
           <Route path="/matches/:id" element={<MatchDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+
+          <Route
+            path="/dashboard"
+            element={
+                     <ProtectedRoute>
+                     <DashboardPage />
+                     </ProtectedRoute>
+                    }
+          />
 
           {/* Analytical Routes */}
           <Route
