@@ -5,7 +5,7 @@ import { Activity, BarChart2, Compass, PlayCircle, Bot, LogIn, LogOut, ShieldChe
 import { useAuth } from '../context/AuthContext'
 
 const navLinks = [
-  { name: 'Dashboard', path: '/', icon: Activity },
+  { name: 'Dashboard', path: '/dashboard', icon: Activity },
   { name: 'Matches', path: '/matches', icon: BarChart2 },
   { name: 'Decision Replay', path: '/replay', icon: PlayCircle },
   { name: 'Scenarios', path: '/scenarios', icon: Compass },
