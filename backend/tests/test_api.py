@@ -15,18 +15,18 @@ def test_auth_flow(client):
 
     # 1. Register
     reg_resp = client.post(
-        "/api/auth/register",
-        json={
-            "email": unique_email,
-            "password": password,
-            "full_name": "Test Analyst",
-            "role": "ANALYST",
-        },
-    )
+    "/api/auth/register",
+    data={
+        "email": unique_email,
+        "password": password,
+        "full_name": "Test Fan",
+        "role": "FAN",
+    },
+)
     assert reg_resp.status_code == 201
     user_data = reg_resp.json()
     assert user_data["email"] == unique_email
-    assert user_data["role"] == "ANALYST"
+    assert user_data["role"] == "FAN"
 
     # 2. Login
     login_resp = client.post(
