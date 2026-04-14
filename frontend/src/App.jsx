@@ -13,6 +13,7 @@ import AIAnalystPage from './pages/AIAnalystPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import AdminVerificationsPage from './pages/AdminVerificationsPage'
+import PlayersPage from './pages/PlayersPage'
 
 function App() {
   return (
@@ -33,6 +34,15 @@ function App() {
                      <ProtectedRoute>
                      <DashboardPage />
                      </ProtectedRoute>
+                    }
+          />
+
+          <Route
+            path="/players"
+            element={
+                     <ProtectedRoute>
+                      <PlayersPage />
+                      </ProtectedRoute>
                     }
           />
 
