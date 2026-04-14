@@ -12,6 +12,7 @@ from backend.app.api.replay import router as replay_router
 from backend.app.api.scenarios import router as scenarios_router
 from backend.app.api.strategy import router as strategy_router
 from backend.app.api.sync import router as sync_router
+from backend.app.api.teams import router as teams_router
 
 
 
@@ -42,6 +43,7 @@ app.include_router(strategy_router)
 app.include_router(ai_router)
 app.include_router(sync_router)
 app.include_router(admin_router)
+app.include_router(teams_router)
 
 
 @app.get("/")
