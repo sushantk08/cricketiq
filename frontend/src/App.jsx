@@ -14,6 +14,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import AdminVerificationsPage from './pages/AdminVerificationsPage'
 import PlayersPage from './pages/PlayersPage'
+import TeamsPage from './pages/TeamsPage'
 
 function App() {
   return (
@@ -43,6 +44,15 @@ function App() {
                      <ProtectedRoute>
                       <PlayersPage />
                       </ProtectedRoute>
+                    }
+          />
+
+          <Route
+            path="/teams"
+            element={
+                     <ProtectedRoute>
+                      <TeamsPage />
+                     </ProtectedRoute>
                     }
           />
 
