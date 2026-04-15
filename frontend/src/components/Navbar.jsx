@@ -7,6 +7,8 @@ import { useAuth } from '../context/AuthContext'
 const navLinks = [
   { name: 'Dashboard', path: '/dashboard', icon: Activity },
   { name: 'Matches', path: '/matches', icon: BarChart2 },
+  { name: 'Players', path: '/players', icon: Activity },
+  { name: 'Teams', path: '/teams', icon: Activity },
   { name: 'Decision Replay', path: '/replay', icon: PlayCircle },
   { name: 'Scenarios', path: '/scenarios', icon: Compass },
   { name: 'AI Analyst', path: '/ai-analyst', icon: Bot },
