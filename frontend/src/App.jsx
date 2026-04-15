@@ -15,6 +15,7 @@ import RegisterPage from './pages/RegisterPage'
 import AdminVerificationsPage from './pages/AdminVerificationsPage'
 import PlayersPage from './pages/PlayersPage'
 import TeamsPage from './pages/TeamsPage'
+import PlayerDetailPage from './pages/PlayerDetailPage'
 
 function App() {
   return (
@@ -80,6 +81,15 @@ function App() {
                 <AIAnalystPage />
               </ProtectedRoute>
             }
+          />
+
+          <Route
+            path="/players/:id"
+            element={
+                     <ProtectedRoute>
+                    <PlayerDetailPage />
+                     </ProtectedRoute>
+                    }
           />
 
           {/* Admin Verification Portal (ADMIN Only) */}
