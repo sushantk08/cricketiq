@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 function PlayersPage() {
   const [players, setPlayers] = useState([]);
@@ -37,7 +38,14 @@ function PlayersPage() {
                 marginBottom: "12px",
               }}
             >
-              <h2>{player.name}</h2>
+             <h2>
+  <Link
+    to={`/players/${player.id}`}
+    style={{ textDecoration: "none" }}
+  >
+    {player.name}
+  </Link>
+</h2>
               <p>Role: {player.role}</p>
               <p>Batting: {player.batting_style}</p>
               <p>
