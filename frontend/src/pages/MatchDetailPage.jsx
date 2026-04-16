@@ -60,6 +60,61 @@ export default function MatchDetailPage() {
         </div>
       </div>
 
+            {/* Match Summary */}
+      <div
+        className="glass-card"
+        style={{
+          marginBottom: '24px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '16px',
+        }}
+      >
+        <div>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+            Match
+          </span>
+          <p style={{ margin: '6px 0 0', fontWeight: 700 }}>
+            {match.team1?.short_name} vs {match.team2?.short_name}
+          </p>
+        </div>
+
+        <div>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+            Format
+          </span>
+          <p style={{ margin: '6px 0 0', fontWeight: 700 }}>
+            {match.match_type}
+          </p>
+        </div>
+
+        <div>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+            Result
+          </span>
+          <p
+            style={{
+              margin: '6px 0 0',
+              fontWeight: 700,
+              color: 'var(--accent-green)',
+            }}
+          >
+            {match.winner_id
+              ? `${match.winner_id === match.team1?.id ? match.team1?.name : match.team2?.name} won`
+              : 'Result unavailable'}
+          </p>
+        </div>
+
+        <div>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+            Date
+          </span>
+          <p style={{ margin: '6px 0 0', fontWeight: 700 }}>
+            {new Date(match.match_date).toLocaleDateString()}
+          </p>
+        </div>
+      </div>
+
       {/* Navigation Tabs */}
       <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px', marginBottom: '24px' }}>
         {['scorecard', 'turning-points'].map(tab => (
