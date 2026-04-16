@@ -16,6 +16,7 @@ import AdminVerificationsPage from './pages/AdminVerificationsPage'
 import PlayersPage from './pages/PlayersPage'
 import TeamsPage from './pages/TeamsPage'
 import PlayerDetailPage from './pages/PlayerDetailPage'
+import TeamDetailPage from './pages/TeamDetailPage'
 
 function App() {
   return (
@@ -56,6 +57,15 @@ function App() {
                      </ProtectedRoute>
                     }
           />
+
+          <Route
+  path="/teams/:id"
+  element={
+    <ProtectedRoute>
+      <TeamDetailPage />
+    </ProtectedRoute>
+  }
+/>
 
           {/* Analytical Routes */}
           <Route
