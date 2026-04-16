@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 function TeamsPage() {
   const [teams, setTeams] = useState([]);
@@ -37,7 +38,14 @@ function TeamsPage() {
                 marginBottom: "12px",
               }}
             >
-              <h2>{team.name}</h2>
+              <h2>
+  <Link
+    to={`/teams/${team.id}`}
+    style={{ textDecoration: "none" }}
+  >
+    {team.name}
+  </Link>
+</h2>
               <p>Short Name: {team.short_name}</p>
             </div>
           ))}
