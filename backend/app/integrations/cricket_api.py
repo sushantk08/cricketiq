@@ -23,7 +23,7 @@ class CricketAPIAdapter:
         if self.api_key and not self.api_key.startswith("your_"):
             try:
                 url = f"{self.base_url}/currentMatches?apikey={self.api_key}&offset=0"
-                with httpx.Client(timeout=10.0) as client:
+                with httpx.Client(timeout=30.0) as client:
                     response = client.get(url)
                     if response.status_code == 200:
                         data = response.json().get("data", [])
@@ -74,18 +74,19 @@ class CricketAPIAdapter:
         """Normalize CricAPI's exact JSON keys including the 'score' array."""
         teams = raw.get("teams", ["Team A", "Team B"])
         team1 = teams[0] if len(teams) > 0 else "Team 1"
-        team2 = teams if len(teams) > 1 else "Team 2"
+        team2 = teams[1] if len(teams) > 1 else "Team 2"
 
         team_info = raw.get("teamInfo", [])
         t1_short = (
-            team_info[0].get("shortname")
-            if len(team_info) > 0
-            else team1[:3].upper()
+             team_info[0].get("shortname")
+             if len(team_info) > 0 and team_info[0].get("shortname")
+             else team1[:3].upper()
         )
+
         t2_short = (
-            team_info.get("shortname")
-            if len(team_info) > 1
-            else team2[:3].upper()
+             team_info[1].get("shortname")
+             if len(team_info) > 1 and team_info[1].get("shortname")
+             else team2[:3].upper()
         )
 
         # Parse CricAPI's "score" array: [{ "r": 207, "w": 10, "o": 46.3, "inning": "..." }]
