@@ -26,8 +26,16 @@ export default function MatchesPage() {
       })
   }
 
-  useEffect(() => {
+    useEffect(() => {
     loadData()
+
+    const interval = setInterval(() => {
+      fetchLiveScores()
+        .then(setLiveScores)
+        .catch(err => console.error('Live score refresh failed:', err))
+    }, 30000)
+
+    return () => clearInterval(interval)
   }, [])
 
   const handleRefresh = () => {
