@@ -38,6 +38,10 @@ export default function MatchesPage() {
     return () => clearInterval(interval)
   }, [])
 
+  const activeLiveScores = liveScores.filter(
+    (match) => match.match_started && !match.match_ended
+  )
+
   const handleRefresh = () => {
     setRefreshingLive(true)
     loadData()
@@ -63,11 +67,11 @@ export default function MatchesPage() {
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Live CricAPI Feed</h2>
         </div>
 
-        {liveScores.length === 0 ? (
+        {activeLiveScores.length === 0 ? (
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No live matches currently in progress.</p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '18px' }}>
-            {liveScores.map((m, idx) => (
+            {activeLiveScores.map((m, idx) => (
               <motion.div
                 key={m.external_id || idx}
                 initial={{ opacity: 0, y: 12 }}
