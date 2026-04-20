@@ -25,6 +25,12 @@ export async function fetchMatchScorecard(id) {
   return res.json()
 }
 
+export async function fetchMatchAnalytics(id) {
+  const res = await fetch(`${API_BASE}/matches/${id}/analytics`)
+  if (!res.ok) throw new Error('Failed to fetch match analytics')
+  return res.json()
+}
+
 export async function fetchMatchTurningPoints(id) {
   const res = await fetch(`${API_BASE}/matches/${id}/turning-points`)
   if (!res.ok) throw new Error('Failed to fetch turning points')
