@@ -3,13 +3,19 @@ import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Clock, Zap, MapPin } from 'lucide-react'
 import PageWrapper from '../components/PageWrapper'
-import { fetchMatchById, fetchMatchScorecard, fetchMatchTurningPoints } from '../services/api'
+import {
+  fetchMatchById,
+  fetchMatchScorecard,
+  fetchMatchTurningPoints,
+  fetchMatchAnalytics,
+} from '../services/api'
 
 export default function MatchDetailPage() {
   const { id } = useParams()
   const [match, setMatch] = useState(null)
   const [scorecard, setScorecard] = useState(null)
   const [turningPoints, setTurningPoints] = useState(null)
+  const [analytics, setAnalytics] = useState(null)
   const [activeTab, setActiveTab] = useState('scorecard')
   const [activeInnings, setActiveInnings] = useState(0)
 
@@ -18,6 +24,9 @@ export default function MatchDetailPage() {
     fetchMatchScorecard(id).then(setScorecard).catch(() => setScorecard({ innings: [] }))
     fetchMatchTurningPoints(id).then(setTurningPoints).catch(() => setTurningPoints({ turning_points: [] }))
   }, [id])
+    fetchMatchAnalytics(id)
+    .then(setAnalytics)
+    .catch(() => setAnalytics(null))
 
   if (!match) {
     return (
