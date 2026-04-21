@@ -126,7 +126,7 @@ export default function MatchDetailPage() {
 
       {/* Navigation Tabs */}
       <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px', marginBottom: '24px' }}>
-        {['scorecard', 'turning-points'].map(tab => (
+        {['scorecard', 'analytics', 'turning-points'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -141,7 +141,11 @@ export default function MatchDetailPage() {
               borderBottom: activeTab === tab ? '2px solid var(--accent-cyan)' : '2px solid transparent'
             }}
           >
-            {tab === 'scorecard' ? 'Scorecard' : 'Critical Turning Points'}
+            {tab === 'scorecard'
+                ? 'Scorecard'
+                : tab === 'analytics'
+                  ? 'Analytics'
+                  : 'Critical Turning Points'}
           </button>
         ))}
       </div>
