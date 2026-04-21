@@ -150,6 +150,132 @@ export default function MatchDetailPage() {
         ))}
       </div>
 
+      {/* ANALYTICS VIEW */}
+{activeTab === 'analytics' && (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    {!analytics || analytics.innings.length === 0 ? (
+      <div
+        className="glass-card"
+        style={{
+          textAlign: 'center',
+          padding: '48px 24px',
+          border: '1px dashed var(--border-subtle)',
+        }}
+      >
+        <h3 style={{ marginBottom: '8px' }}>No Analytics Available</h3>
+        <p style={{ color: 'var(--text-muted)' }}>
+          Match analytics will appear when innings and delivery data are available.
+        </p>
+      </div>
+    ) : (
+      analytics.innings.map((inn) => (
+        <div key={inn.innings_number} className="glass-card">
+          <h3 style={{ marginBottom: '16px' }}>
+            {inn.batting_team} — {inn.runs}/{inn.wickets}
+          </h3>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: '12px',
+            }}
+          >
+            <div>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                Run Rate
+              </span>
+              <p style={{ fontWeight: 800, marginTop: '5px' }}>
+                {inn.run_rate}
+              </p>
+            </div>
+
+            <div>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                4s
+              </span>
+              <p style={{ fontWeight: 800, marginTop: '5px' }}>
+                {inn.fours}
+              </p>
+            </div>
+
+            <div>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                6s
+              </span>
+              <p style={{ fontWeight: 800, marginTop: '5px' }}>
+                {inn.sixes}
+              </p>
+            </div>
+
+            <div>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                Dot Balls
+              </span>
+              <p style={{ fontWeight: 800, marginTop: '5px' }}>
+                {inn.dot_ball_percentage}%
+              </p>
+            </div>
+
+            <div>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                Boundary Balls
+              </span>
+              <p style={{ fontWeight: 800, marginTop: '5px' }}>
+                {inn.boundary_percentage}%
+              </p>
+            </div>
+          </div>
+
+          <h4 style={{ margin: '24px 0 12px' }}>Phase Analysis</h4>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+              gap: '12px',
+            }}
+          >
+            {Object.entries(inn.phases).map(([phase, data]) => (
+              <div
+                key={phase}
+                style={{
+                  padding: '14px',
+                  borderRadius: '8px',
+                  background: 'var(--bg-main)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '0.8rem',
+                    color: 'var(--accent-cyan)',
+                    fontWeight: 700,
+                  }}
+                >
+                  {phase}
+                </div>
+                <div style={{ marginTop: '8px', fontWeight: 700 }}>
+                  {data.runs} runs
+                </div>
+                <div
+                  style={{
+                    marginTop: '4px',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  {data.run_rate} RR · {data.balls} balls
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+)}
+
       {/* SCORECARD VIEW */}
       {activeTab === 'scorecard' && (
         hasDeliveries && currentInnings ? (
