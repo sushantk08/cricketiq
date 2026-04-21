@@ -190,7 +190,9 @@ export default function DecisionReplayPage() {
                 marginBottom: '20px'
               }}
             >
-              {bowlers.map(b => (
+              {bowlers
+               .filter(b => b.id !== currentPoint?.actual_bowler_id)
+                 .map(b => (
                 <option key={b.id} value={b.id}>
                   {b.name} ({b.role})
                 </option>
