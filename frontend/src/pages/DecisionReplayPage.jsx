@@ -65,7 +65,7 @@ export default function DecisionReplayPage() {
   }
 
   const currentPoint = decisionPoints.find(p => p.over_number === selectedOver)
-  const isMatchPlayable = Number(selectedMatchId) === 1
+  const isMatchPlayable = decisionPoints.length > 0
 
   return (
     <PageWrapper>
