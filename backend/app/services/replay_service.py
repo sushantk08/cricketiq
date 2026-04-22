@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 import numpy as np
 from sqlalchemy.orm import Session
 from backend.app.ml.win_probability import win_predictor
+from backend.app.utils.cricket_rules import get_format_rules
 from backend.app.models.cricket import (
     DecisionReplayRecord,
     Delivery,
@@ -36,6 +37,17 @@ def get_match_decision_points(
   )
   if not inn2 or not inn1:
     return []
+  match = (
+   db.query(Match)
+   .filter(Match.id == match_id)
+   .first()
+    )
+
+  if not match:
+        return []
+    
+  format_rules = get_format_rules(match.match_type)
+  max_balls = format_rules["max_balls"]
 
   target = inn1.total_runs + 1
 
@@ -52,7 +64,7 @@ def get_match_decision_points(
   points = []
   for d in critical_overs:
     balls_bowled = d.over_number * 6
-    balls_remaining = max(0, 120 - balls_bowled)
+    balls_remaining = max(0, max_balls - balls_bowled)
     runs_required = max(0, target - d.cumulative_runs)
 
     phase = get_phase_label(d.over_number).capitalize()
