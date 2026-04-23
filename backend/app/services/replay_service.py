@@ -120,6 +120,22 @@ def simulate_decision_replay(
         ),
     )
 
+
+  match = (
+      db.query(Match)
+      .filter(Match.id == req.match_id)
+      .first()
+    )
+
+  if not match:
+      raise HTTPException(
+          status_code=status.HTTP_404_NOT_FOUND,
+          detail=f"Match {req.match_id} not found.",
+      )
+
+  format_rules = get_format_rules(match.match_type)
+  max_balls = format_rules["max_balls"]
+
   over_delivs = (
       db.query(Delivery)
       .filter(
@@ -145,7 +161,9 @@ def simulate_decision_replay(
   wickets_before = first_ball.cumulative_wickets - (
       1 if first_ball.is_wicket else 0
   )
-  balls_rem_before = max(0, 120 - (req.over_number * 6))
+
+  balls_bowled_before = req.over_number * 6
+  balls_rem_before = max(0, max_balls - balls_bowled_before)
   runs_req_before = max(0, target - runs_before)
   wkts_hand_before = max(0, 10 - wickets_before)
 
