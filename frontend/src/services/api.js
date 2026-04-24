@@ -152,3 +152,32 @@ export async function verifyUserAccount(token, userId, action) {
   if (!res.ok) throw new Error('Failed to verify user')
   return res.json()
 }
+
+// --- STRATEGY & MATCHUPS ---
+export async function fetchMatchup(batterId, bowlerId) {
+  const res = await fetch(
+    `${API_BASE}/matchups?batter_id=${batterId}&bowler_id=${bowlerId}`
+  )
+  if (!res.ok) throw new Error('Failed to fetch matchup')
+  return res.json()
+}
+
+export async function fetchBowlingStrategy(strategyData) {
+  const res = await fetch(`${API_BASE}/strategy/bowling`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(strategyData),
+  })
+  if (!res.ok) throw new Error('Failed to fetch bowling strategy')
+  return res.json()
+}
+
+export async function fetchBattingStrategy(strategyData) {
+  const res = await fetch(`${API_BASE}/strategy/batting`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(strategyData),
+  })
+  if (!res.ok) throw new Error('Failed to fetch batting strategy')
+  return res.json()
+}

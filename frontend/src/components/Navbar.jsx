@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Activity, BarChart2, Compass, PlayCircle, Bot, LogIn, LogOut, ShieldCheck } from 'lucide-react'
+import { Activity, BarChart2, Compass, PlayCircle, Bot, Target, LogIn, LogOut, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const navLinks = [
@@ -12,6 +12,7 @@ const navLinks = [
   { name: 'Decision Replay', path: '/replay', icon: PlayCircle },
   { name: 'Scenarios', path: '/scenarios', icon: Compass },
   { name: 'AI Analyst', path: '/ai-analyst', icon: Bot },
+  { name: 'Strategy', path: '/strategy', icon: Target },
 ]
 
 export default function Navbar() {
