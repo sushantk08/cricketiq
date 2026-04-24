@@ -65,6 +65,12 @@ export async function fetchPlayers(teamId) {
   return res.json()
 }
 
+export async function fetchTeams() {
+  const res = await fetch(`${API_BASE}/teams`)
+  if (!res.ok) throw new Error('Failed to fetch teams')
+  return res.json()
+}
+
 // --- SCENARIO SIMULATOR ---
 export async function simulateScenario(scenarioData) {
   const res = await fetch(`${API_BASE}/scenarios/simulate`, {

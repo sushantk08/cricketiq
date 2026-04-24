@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import PageWrapper from '../components/PageWrapper'
 import {
   fetchPlayers,
+  fetchTeams,
   fetchMatchup,
   fetchBowlingStrategy,
   fetchBattingStrategy,
@@ -9,6 +10,7 @@ import {
 
 export default function StrategyPage() {
   const [players, setPlayers] = useState([])
+  const [teams, setTeams] = useState([])
   const [batterId, setBatterId] = useState('')
   const [bowlerId, setBowlerId] = useState('')
   const [teamId, setTeamId] = useState('')
@@ -21,10 +23,13 @@ export default function StrategyPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetchPlayers()
-      .then(setPlayers)
-      .catch(() => setError('Failed to load players'))
-  }, [])
+     Promise.all([fetchPlayers(), fetchTeams()])
+       .then(([playerData, teamData]) => {
+         setPlayers(playerData)
+         setTeams(teamData)
+      })
+    .catch(() => setError('Failed to load players or teams'))
+    }, [])
 
   const batters = players.filter(
     (player) =>
@@ -218,15 +223,11 @@ export default function StrategyPage() {
             style={{ width: '100%', padding: '10px', marginBottom: '12px' }}
           >
             <option value="">Select Bowling Team</option>
-            {[...new Map(
-              bowlers
-                .filter((player) => player.team)
-                .map((player) => [player.team.id, player.team])
-            ).values()].map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
+            {teams.map((team) => (
+            <option key={team.id} value={team.id}>
+              {team.name}
+            </option>
+             ))}
           </select>
 
           <select
