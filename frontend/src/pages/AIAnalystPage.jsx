@@ -128,9 +128,23 @@ export default function AIAnalystPage() {
             <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>
               AI MATCH REPORT • {report.match_title}
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-green)', fontSize: '0.75rem', fontWeight: 700 }}>
-              <ShieldCheck size={14} /> Grounded in Database Facts
-            </div>
+            <div
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    color: report.grounded_in_database_facts
+      ? 'var(--accent-green)'
+      : 'var(--accent-orange)',
+    fontSize: '0.75rem',
+    fontWeight: 700,
+  }}
+>
+  <ShieldCheck size={14} />
+  {report.grounded_in_database_facts
+    ? 'Grounded in Database Facts'
+    : 'Generated Analysis — Verify Facts'}
+</div>
           </div>
 
           <p style={{ fontSize: '1.05rem', lineHeight: 1.6, marginBottom: '20px', color: 'var(--text-main)' }}>
