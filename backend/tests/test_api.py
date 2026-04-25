@@ -116,3 +116,22 @@ def test_decision_replay(client):
     assert "decision_impact" in data
     assert 0.0 <= data["decision_quality_score"] <= 100.0
     assert "uncertainty_disclaimer" in data
+
+def test_ai_match_analysis(client):
+    """Verify AI match analysis returns database-grounded match facts."""
+    response = client.post(
+        "/api/ai/analyze-match",
+        json={"match_id": 1},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["match_id"] == 1
+    assert data["match_title"] == "India vs Australia - T20 Super Series"
+    assert data["winner"] == "India"
+    assert data["best_batter"]
+    assert data["best_bowler"]
+    assert isinstance(data["turning_point_insights"], list)
+    assert data["grounded_in_database_facts"] is True
