@@ -6,7 +6,7 @@ AI-Powered Cricket Strategy, Performance & Decision Intelligence Platform.
 CricketIQ is a full-stack cricket intelligence platform designed for fans, analysts, coaches, and teams. It delivers tactical insights, win probability modeling, automated turning point detection, and counterfactual "what-if" analysis through Decision Replay.
 
 ## Status
-Project initialization in progress.
+Active development. Core backend APIs, PostgreSQL database, authentication, cricket analytics, win probability, Decision Replay, Strategy, AI Analyst, external cricket API integration, React frontend, automated tests, Docker, and CI/CD are implemented. Historical-data ML improvements, Redis/Celery, MongoDB, production hardening, and AWS deployment are planned next.
 
 ## Backend Setup
 
