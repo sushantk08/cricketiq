@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     Boolean,
     Column,
@@ -12,6 +12,9 @@ from sqlalchemy.orm import relationship
 
 from backend.app.database.session import Base
 
+def utc_now():
+    return datetime.now(timezone.utc)
+
 
 class Team(Base):
     __tablename__ = "teams"
@@ -21,7 +24,7 @@ class Team(Base):
     short_name = Column(
         String, nullable=False
     )  # e.g., 'IND', 'AUS', 'CSK', 'MI'
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     players = relationship(
         "Player", back_populates="team", cascade="all, delete-orphan"
@@ -43,7 +46,7 @@ class Player(Base):
         String, nullable=True
     )  # 'Right-arm fast', 'Left-arm orthodox', etc.
     team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     team = relationship("Team", back_populates="players")
 
@@ -55,7 +58,7 @@ class Venue(Base):
     name = Column(String, unique=True, nullable=False)
     city = Column(String, nullable=False)
     country = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
 
 class Match(Base):
@@ -71,8 +74,8 @@ class Match(Base):
     winner_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
     toss_winner_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
     toss_decision = Column(String, nullable=True)
-    match_date = Column(DateTime, default=datetime.utcnow, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    match_date = Column(DateTime, default=utc_now, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     team1 = relationship("Team", foreign_keys=[team1_id])
     team2 = relationship("Team", foreign_keys=[team2_id])
@@ -99,7 +102,7 @@ class Innings(Base):
     total_runs = Column(Integer, default=0, nullable=False)
     total_wickets = Column(Integer, default=0, nullable=False)
     total_overs = Column(Float, default=0.0, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     match = relationship("Match", back_populates="innings")
     batting_team = relationship("Team", foreign_keys=[batting_team_id])
@@ -181,7 +184,7 @@ class DecisionReplayRecord(Base):
     expected_runs_alternative = Column(Float, nullable=False)
     decision_quality_score = Column(Float, nullable=False)  # 0 to 100
     explanation = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     match = relationship("Match")
     actual_bowler = relationship("Player", foreign_keys=[actual_bowler_id])

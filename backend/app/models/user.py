@@ -1,7 +1,10 @@
 import enum
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Boolean, Column, DateTime, Enum, Integer, String
 from backend.app.database.session import Base
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 
 class UserRole(str, enum.Enum):
@@ -36,4 +39,4 @@ class User(Base):
     )
     id_document_url = Column(String, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)

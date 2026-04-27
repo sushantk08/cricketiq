@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel
-
+from pydantic import BaseModel, ConfigDict
 
 class PlayerBrief(BaseModel):
     id: int
@@ -10,8 +9,7 @@ class PlayerBrief(BaseModel):
     bowling_style: Optional[str] = None
     team_id: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PhaseStats(BaseModel):

@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class TeamBrief(BaseModel):
@@ -8,8 +8,7 @@ class TeamBrief(BaseModel):
     name: str
     short_name: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class VenueBrief(BaseModel):
@@ -18,8 +17,7 @@ class VenueBrief(BaseModel):
     city: str
     country: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MatchBrief(BaseModel):
@@ -33,8 +31,7 @@ class MatchBrief(BaseModel):
     venue: Optional[VenueBrief] = None
     winner_id: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BatterScorecard(BaseModel):
