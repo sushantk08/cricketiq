@@ -16,6 +16,14 @@ services:
       timeout: 5s
       retries: 5
 
+  mongodb:
+    image: mongo:7
+    container_name: cricketiq_mongodb
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_data:/data/db
+
   backend:
     build:
       context: ./backend
@@ -43,3 +51,4 @@ services:
 
 volumes:
   postgres_data:
+  mongodb_data:
