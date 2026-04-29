@@ -13,4 +13,9 @@ router = APIRouter(prefix="/api/teams", tags=["Teams"])
 
 @router.get("", response_model=List[TeamBrief])
 def list_teams(db: Session = Depends(get_db)):
-    return db.query(Team).order_by(Team.name).all()
+    return (
+        db.query(Team)
+        .filter(Team.players.any())
+        .order_by(Team.name)
+        .all()
+    )
