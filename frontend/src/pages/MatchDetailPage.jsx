@@ -19,14 +19,21 @@ export default function MatchDetailPage() {
   const [activeTab, setActiveTab] = useState('scorecard')
   const [activeInnings, setActiveInnings] = useState(0)
 
-  useEffect(() => {
+    useEffect(() => {
     fetchMatchById(id).then(setMatch).catch(console.error)
-    fetchMatchScorecard(id).then(setScorecard).catch(() => setScorecard({ innings: [] }))
-    fetchMatchTurningPoints(id).then(setTurningPoints).catch(() => setTurningPoints({ turning_points: [] }))
-  }, [id])
+
+    fetchMatchScorecard(id)
+      .then(setScorecard)
+      .catch(() => setScorecard({ innings: [] }))
+
+    fetchMatchTurningPoints(id)
+      .then(setTurningPoints)
+      .catch(() => setTurningPoints({ turning_points: [] }))
+
     fetchMatchAnalytics(id)
-    .then(setAnalytics)
-    .catch(() => setAnalytics(null))
+      .then(setAnalytics)
+      .catch(() => setAnalytics(null))
+  }, [id])
 
   if (!match) {
     return (
