@@ -135,3 +135,27 @@ def test_ai_match_analysis(client):
     assert data["best_bowler"]
     assert isinstance(data["turning_point_insights"], list)
     assert data["grounded_in_database_facts"] is True
+
+def test_ai_report_saved_to_mongodb(client):
+    """Verify an AI match report is persisted to MongoDB."""
+    from backend.app.database.mongodb import ai_reports_collection
+
+    response = client.post(
+        "/api/ai/analyze-match",
+        json={"match_id": 1},
+    )
+
+    assert response.status_code == 200
+
+    report = response.json()
+
+    stored = ai_reports_collection.find_one(
+        {"match_id": report["match_id"]},
+        sort=[("created_at", -1)],
+    )
+
+    assert stored is not None
+    assert stored["match_id"] == report["match_id"]
+    assert stored["match_title"] == report["match_title"]
+    assert stored["winner"] == report["winner"]
+    assert stored["grounded_in_database_facts"] is True

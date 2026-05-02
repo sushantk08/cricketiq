@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-
+from backend.app.database.mongodb import save_ai_match_report
 from backend.app.database.session import get_db
 from backend.app.schemas.ai import (
     AskAnalystRequest,
@@ -26,6 +26,9 @@ def analyze_match(req: MatchAnalysisRequest, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Match not found"
         )
+    report_id = save_ai_match_report(report.model_dump())
+    print(f"[MongoDB] Saved AI match report: {report_id}")
+
     return report
 
 
