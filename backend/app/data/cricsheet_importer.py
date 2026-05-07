@@ -113,10 +113,14 @@ def extract_second_innings_deliveries(match_file: str) -> list[dict]:
         delivery = delivery_block[delivery_key]
 
         runs = delivery.get("runs", {})
-        wickets = delivery.get("wickets", [])
+        wicket_data = delivery.get("wicket")
 
         total_runs += runs.get("total", 0)
-        wickets_lost += len(wickets)
+
+        if wicket_data:
+            wickets_lost += 1
+
+        is_wicket = bool(wicket_data)
 
         delivery_number = float(delivery_key)
 
@@ -174,8 +178,31 @@ def extract_second_innings_deliveries(match_file: str) -> list[dict]:
                 "balls_remaining_after": balls_remaining_after,
                 "wickets_in_hand_after": wickets_in_hand_after,
                 "required_run_rate_after": required_run_rate_after,
-                "is_wicket": bool(wickets),
+                "is_wicket": is_wicket,
             }
         )
 
     return deliveries
+
+def build_training_rows(limit: int = 100) -> list[dict]:
+    """Build win-probability training rows from a limited set of matches."""
+    training_rows = []
+
+    for match_file in get_match_files()[:limit]:
+        rows = extract_second_innings_deliveries(match_file)
+
+        if not rows:
+            continue
+
+        data = load_match(match_file)
+        winner = data.get("info", {}).get("outcome", {}).get("winner")
+
+        for row in rows:
+            row["winner"] = winner
+            row["chasing_team_won"] = int(
+                winner == row["batting_team"]
+            )
+
+        training_rows.extend(rows)
+
+    return training_rows
