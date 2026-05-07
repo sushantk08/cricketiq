@@ -1,5 +1,6 @@
 import zipfile
 from pathlib import Path
+import csv
 
 import yaml
 
@@ -206,3 +207,61 @@ def build_training_rows(limit: int = 100) -> list[dict]:
         training_rows.extend(rows)
 
     return training_rows
+
+
+def write_training_dataset(output_path: Path, limit: int | None = None) -> int:
+    """Write historical win-probability rows to a CSV file."""
+    files = get_match_files()
+
+    if limit is not None:
+        files = files[:limit]
+
+    columns = [
+        "match_id",
+        "batting_team",
+        "delivery",
+        "over",
+        "ball",
+        "batter",
+        "bowler",
+        "runs_batter",
+        "runs_extras",
+        "runs_total",
+        "runs_required_before",
+        "runs_required_after",
+        "balls_remaining_after",
+        "wickets_in_hand_after",
+        "required_run_rate_after",
+        "is_wicket",
+        "winner",
+        "chasing_team_won",
+    ]
+
+    row_count = 0
+
+    with output_path.open("w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=columns)
+        writer.writeheader()
+
+        for match_file in files:
+            rows = extract_second_innings_deliveries(match_file)
+
+            if not rows:
+                continue
+
+            data = load_match(match_file)
+            winner = data.get("info", {}).get("outcome", {}).get("winner")
+
+            if not winner:
+                continue
+
+            for row in rows:
+                row["winner"] = winner
+                row["chasing_team_won"] = int(
+                    winner == row["batting_team"]
+                )
+
+                writer.writerow(row)
+                row_count += 1
+
+    return row_count

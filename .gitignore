@@ -31,3 +31,7 @@ dist-ssr/
 # Uploaded ID documents
 backend/uploads/
 uploads/
+
+# Local historical cricket data
+backend/data/historical/
+t20s.zip
