@@ -111,3 +111,6 @@ class HistoricalWinProbabilityModel:
         probability = self.model.predict_proba(features)[0][1]
 
         return float(probability * 100)
+
+historical_win_predictor = HistoricalWinProbabilityModel()
+historical_win_predictor.train()

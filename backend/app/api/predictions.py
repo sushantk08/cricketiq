@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from backend.app.database.session import get_db
-from backend.app.ml.win_probability import win_predictor
+from backend.app.ml.historical_win_probability import historical_win_predictor
 from backend.app.models.cricket import Delivery, Innings, Match
 from backend.app.schemas.prediction import (
     BallProbabilityPoint,
@@ -14,100 +14,163 @@ from backend.app.schemas.prediction import (
 router = APIRouter(prefix="/api/predictions", tags=["Predictions"])
 
 
-@router.post("/win-probability", response_model=WinProbabilityResponse)
-def calculate_win_probability(req: WinProbabilityRequest):
-    prob_batting = win_predictor.predict(
-        runs_required=req.runs_required,
-        balls_remaining=req.balls_remaining,
-        wickets_in_hand=req.wickets_in_hand,
-    )
-    rrr = (
-        round((req.runs_required / req.balls_remaining) * 6.0, 2)
-        if req.balls_remaining > 0
+@router.post(
+    "/win-probability",
+    response_model=WinProbabilityResponse,
+)
+def predict_win_probability(
+    request: WinProbabilityRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Predict the chasing team's win probability using the
+    historical Cricsheet-trained model.
+    """
+
+    required_run_rate = (
+        (request.runs_required / request.balls_remaining) * 6
+        if request.balls_remaining > 0
         else 0.0
     )
 
-    return {
-        "runs_required": req.runs_required,
-        "balls_remaining": req.balls_remaining,
-        "wickets_in_hand": req.wickets_in_hand,
-        "required_run_rate": rrr,
-        "win_probability_batting": round(prob_batting * 100, 2),
-        "win_probability_bowling": round((1.0 - prob_batting) * 100, 2),
-    }
+    batting_probability = historical_win_predictor.predict(
+        request.runs_required,
+        request.balls_remaining,
+        request.wickets_in_hand,
+    )
+
+    batting_probability = round(batting_probability, 2)
+    bowling_probability = round(100.0 - batting_probability, 2)
+
+    return WinProbabilityResponse(
+        runs_required=request.runs_required,
+        balls_remaining=request.balls_remaining,
+        wickets_in_hand=request.wickets_in_hand,
+        required_run_rate=round(required_run_rate, 2),
+        win_probability_batting=batting_probability,
+        win_probability_bowling=bowling_probability,
+    )
 
 
 @router.get(
-    "/matches/{match_id}/curve", response_model=MatchWinProbabilityCurve
+    "/match/{match_id}/win-probability",
+    response_model=MatchWinProbabilityCurve,
 )
-def get_match_probability_curve(
-    match_id: int, db: Session = Depends(get_db)
+def get_match_win_probability_curve(
+    match_id: int,
+    db: Session = Depends(get_db),
 ):
+    """
+    Generate a ball-by-ball win probability curve for a match.
+
+    The second innings is treated as the chasing innings.
+    Historical ML probability is calculated after each delivery.
+    """
+
     match = db.query(Match).filter(Match.id == match_id).first()
+
     if not match:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Match not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Match not found",
         )
 
-    inn1 = (
+    innings_list = (
         db.query(Innings)
-        .filter(Innings.match_id == match_id, Innings.innings_number == 1)
-        .first()
-    )
-    inn2 = (
-        db.query(Innings)
-        .filter(Innings.match_id == match_id, Innings.innings_number == 2)
-        .first()
-    )
-    if not inn1 or not inn2:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Match does not have both innings recorded",
-        )
-
-    target = inn1.total_runs + 1
-    deliveries = (
-        db.query(Delivery)
-        .filter(Delivery.innings_id == inn2.id)
-        .order_by(Delivery.over_number, Delivery.ball_number)
+        .filter(Innings.match_id == match_id)
+        .order_by(Innings.innings_number)
         .all()
     )
 
+    if len(innings_list) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Match does not contain two innings",
+        )
+
+    first_innings = innings_list[0]
+    second_innings = innings_list[1]
+
+    first_innings_deliveries = (
+        db.query(Delivery)
+        .filter(Delivery.innings_id == first_innings.id)
+        .order_by(Delivery.over, Delivery.ball)
+        .all()
+    )
+
+    second_innings_deliveries = (
+        db.query(Delivery)
+        .filter(Delivery.innings_id == second_innings.id)
+        .order_by(Delivery.over, Delivery.ball)
+        .all()
+    )
+
+    if not first_innings_deliveries or not second_innings_deliveries:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Match does not contain delivery data",
+        )
+
+    target = sum(
+        (delivery.runs_batter or 0) + (delivery.runs_extras or 0)
+        for delivery in first_innings_deliveries
+    ) + 1
+
+    chasing_team = second_innings.batting_team
+    defending_team = first_innings.batting_team
+
     curve = []
-    total_balls = 120
-    legal_balls_bowled = 0
+    current_score = 0
+    wickets_lost = 0
 
-    for d in deliveries:
-        if d.extra_type not in ["wide", "noball"]:
-            legal_balls_bowled += 1
+    for delivery in second_innings_deliveries:
+        current_score += (
+            (delivery.runs_batter or 0)
+            + (delivery.runs_extras or 0)
+        )
 
-        balls_remaining = max(0, total_balls - legal_balls_bowled)
-        runs_required = max(0, target - d.cumulative_runs)
-        wickets_in_hand = max(0, 10 - d.cumulative_wickets)
+        if delivery.is_wicket:
+            wickets_lost += 1
 
-        batting_prob = win_predictor.predict(
-            runs_required=runs_required,
-            balls_remaining=balls_remaining,
-            wickets_in_hand=wickets_in_hand,
+        runs_required = max(0, target - current_score)
+
+        balls_completed = (
+            delivery.over * 6
+            + delivery.ball
+        )
+
+        balls_remaining = max(0, 120 - balls_completed)
+        wickets_in_hand = max(0, 10 - wickets_lost)
+
+        batting_probability = historical_win_predictor.predict(
+            runs_required,
+            balls_remaining,
+            wickets_in_hand,
+        )
+
+        batting_probability = round(batting_probability, 2)
+        bowling_probability = round(
+            100.0 - batting_probability,
+            2,
         )
 
         curve.append(
             BallProbabilityPoint(
-                over=d.over_number,
-                ball=d.ball_number,
-                score=d.cumulative_runs,
-                wickets=d.cumulative_wickets,
+                over=delivery.over,
+                ball=delivery.ball,
+                score=current_score,
+                wickets=wickets_lost,
                 runs_required=runs_required,
                 balls_remaining=balls_remaining,
-                batting_win_prob=round(batting_prob * 100, 2),
-                bowling_win_prob=round((1.0 - batting_prob) * 100, 2),
+                batting_win_prob=batting_probability,
+                bowling_win_prob=bowling_probability,
             )
         )
 
-    return {
-        "match_id": match.id,
-        "chasing_team": inn2.batting_team.name,
-        "defending_team": inn2.bowling_team.name,
-        "target": target,
-        "curve": curve,
-    }
+    return MatchWinProbabilityCurve(
+        match_id=match_id,
+        chasing_team=chasing_team,
+        defending_team=defending_team,
+        target=target,
+        curve=curve,
+    )
