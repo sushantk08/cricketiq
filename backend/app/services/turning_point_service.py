@@ -1,6 +1,6 @@
 from typing import List
 from sqlalchemy.orm import Session
-from backend.app.ml.win_probability import win_predictor
+from backend.app.ml.historical_win_probability import historical_win_predictor
 from backend.app.models.cricket import Delivery, Innings, Match
 from backend.app.schemas.analytics import (
     MatchTurningPointsResponse,
@@ -49,8 +49,8 @@ def detect_turning_points(
         runs_req_before = max(0, target - cumulative_runs)
         wkts_hand_before = max(0, 10 - cumulative_wickets)
 
-        prob_before = win_predictor.predict(
-            runs_req_before, balls_rem_before, wkts_hand_before
+        prob_before = historical_win_predictor.predict(
+             runs_req_before, balls_rem_before, wkts_hand_before
         )
 
         # Update state WITH this delivery
@@ -65,12 +65,12 @@ def detect_turning_points(
         runs_req_after = max(0, target - cumulative_runs)
         wkts_hand_after = max(0, 10 - cumulative_wickets)
 
-        prob_after = win_predictor.predict(
+        prob_after = historical_win_predictor.predict(
             runs_req_after, balls_rem_after, wkts_hand_after
         )
 
         # Calculate probability swing for the batting team
-        delta = round((prob_after - prob_before) * 100, 2)
+        delta = round(prob_after - prob_before, 2)
         abs_delta = abs(delta)
 
         # Classify turning points
@@ -116,8 +116,8 @@ def detect_turning_points(
                     batter_name=d.batter.name,
                     bowler_name=d.bowler.name,
                     event_summary=desc,
-                    win_prob_before=round(prob_before * 100, 2),
-                    win_prob_after=round(prob_after * 100, 2),
+                    win_prob_before=round(prob_before, 2),
+                    win_prob_after=round(prob_after, 2),
                     win_prob_delta=delta,
                     classification=classification,
                 )

@@ -2,7 +2,7 @@ from typing import List
 from fastapi import HTTPException, status
 import numpy as np
 from sqlalchemy.orm import Session
-from backend.app.ml.win_probability import win_predictor
+from backend.app.ml.historical_win_probability import historical_win_predictor
 from backend.app.utils.cricket_rules import get_format_rules
 from backend.app.models.cricket import (
     DecisionReplayRecord,
@@ -174,8 +174,8 @@ def simulate_decision_replay(
   runs_req_actual_after = max(0, runs_req_before - actual_runs_scored)
   wkts_hand_actual_after = max(0, wkts_hand_before - actual_wickets_taken)
 
-  actual_win_prob = win_predictor.predict(
-      runs_req_actual_after, balls_rem_after, wkts_hand_actual_after
+  actual_win_prob = historical_win_predictor.predict(
+     runs_req_actual_after, balls_rem_after, wkts_hand_actual_after
   )
 
   alt_bowler = (
@@ -206,12 +206,12 @@ def simulate_decision_replay(
   runs_req_alt_after = max(0, runs_req_before - int(round(exp_runs_alt)))
   wkts_hand_alt_after = max(0, wkts_hand_before - exp_wkts_alt)
 
-  alt_win_prob = win_predictor.predict(
-      runs_req_alt_after, balls_rem_after, wkts_hand_alt_after
+  alt_win_prob = historical_win_predictor.predict(
+     runs_req_alt_after, balls_rem_after, wkts_hand_alt_after
   )
 
-  actual_bowling_prob = round((1.0 - actual_win_prob) * 100, 2)
-  alt_bowling_prob = round((1.0 - alt_win_prob) * 100, 2)
+  actual_bowling_prob = round(100.0 - actual_win_prob, 2)
+  alt_bowling_prob = round(100.0 - alt_win_prob, 2)
   impact = round(alt_bowling_prob - actual_bowling_prob, 2)
 
   quality_score = float(np.clip(50.0 - (impact * 1.5), 5.0, 95.0))

@@ -1,4 +1,4 @@
-from backend.app.ml.win_probability import win_predictor
+from backend.app.ml.historical_win_probability import historical_win_predictor
 from backend.app.schemas.scenario import (
     ScenarioSimulateRequest,
     ScenarioSimulateResponse,
@@ -60,13 +60,14 @@ def run_scenario_simulation(
             else (0.0 if runs_required == 0 else 99.0)
         )
 
-        prob = win_predictor.predict(
-            runs_required=runs_required,
-            balls_remaining=balls_remaining,
-            wickets_in_hand=wickets_in_hand,
+        prob = historical_win_predictor.predict(
+           runs_required=runs_required,
+           balls_remaining=balls_remaining,
+           wickets_in_hand=wickets_in_hand,
         )
-        win_prob_bat = round(prob * 100, 2)
-        win_prob_bowl = round((1.0 - prob) * 100, 2)
+
+        win_prob_bat = round(prob, 2)
+        win_prob_bowl = round(100.0 - prob, 2)
 
         # Risk Tier Classification
         if wickets_in_hand <= 2 or rrr >= 14.0:
