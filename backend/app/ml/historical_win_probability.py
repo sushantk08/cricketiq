@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, brier_score_loss
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit
 
 
 DATASET_PATH = (
@@ -57,13 +57,22 @@ class HistoricalWinProbabilityModel:
         X = df[FEATURE_COLUMNS]
         y = df[TARGET_COLUMN]
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            X,
-            y,
+        groups = df["match_id"]
+
+        splitter = GroupShuffleSplit(
+            n_splits=1,
             test_size=0.2,
             random_state=42,
-            stratify=y,
         )
+
+        train_indices, test_indices = next(
+               splitter.split(X, y, groups=groups)
+        )
+
+        X_train = X.iloc[train_indices]
+        X_test = X.iloc[test_indices]
+        y_train = y.iloc[train_indices]
+        y_test = y.iloc[test_indices]
 
         self.model.fit(X_train, y_train)
         self.is_trained = True
