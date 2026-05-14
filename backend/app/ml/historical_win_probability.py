@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import joblib
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, brier_score_loss
@@ -11,6 +11,13 @@ DATASET_PATH = (
     / "data"
     / "historical"
     / "win_probability.csv"
+)
+
+MODEL_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "data"
+    / "historical"
+    / "win_probability_model.joblib"
 )
 
 FEATURE_COLUMNS = [
@@ -51,6 +58,18 @@ class HistoricalWinProbabilityModel:
 
         return df
 
+    def save_model(self) -> None:
+        MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump(self.model, MODEL_PATH)
+
+
+    def load_model(self) -> bool:
+        if not MODEL_PATH.exists():
+            return False
+        self.model = joblib.load(MODEL_PATH)
+        self.is_trained = True
+        return True
+
     def train(self) -> dict:
         df = self.load_dataset()
 
@@ -76,6 +95,7 @@ class HistoricalWinProbabilityModel:
 
         self.model.fit(X_train, y_train)
         self.is_trained = True
+        self.save_model()
 
         predictions = self.model.predict(X_test)
         probabilities = self.model.predict_proba(X_test)[:, 1]
@@ -122,4 +142,6 @@ class HistoricalWinProbabilityModel:
         return float(probability * 100)
 
 historical_win_predictor = HistoricalWinProbabilityModel()
-historical_win_predictor.train()
+
+if not historical_win_predictor.load_model():
+    historical_win_predictor.train()
