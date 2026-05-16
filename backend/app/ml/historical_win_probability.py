@@ -79,22 +79,17 @@ class HistoricalWinProbabilityModel:
         X = df[FEATURE_COLUMNS]
         y = df[TARGET_COLUMN]
 
-        groups = df["match_id"]
+        unique_dates = df["match_date"].drop_duplicates().sort_values()
+        cutoff_index = int(len(unique_dates) * 0.8)
+        cutoff_date = unique_dates.iloc[cutoff_index]
 
-        splitter = GroupShuffleSplit(
-            n_splits=1,
-            test_size=0.2,
-            random_state=42,
-        )
+        train_mask = df["match_date"] <= cutoff_date
+        test_mask = df["match_date"] > cutoff_date
 
-        train_indices, test_indices = next(
-               splitter.split(X, y, groups=groups)
-        )
-
-        X_train = X.iloc[train_indices]
-        X_test = X.iloc[test_indices]
-        y_train = y.iloc[train_indices]
-        y_test = y.iloc[test_indices]
+        X_train = X.loc[train_mask]
+        X_test = X.loc[test_mask]
+        y_train = y.loc[train_mask]
+        y_test = y.loc[test_mask]
 
         self.model.fit(X_train, y_train)
         self.is_trained = True
