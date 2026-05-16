@@ -73,6 +73,9 @@ class HistoricalWinProbabilityModel:
     def train(self) -> dict:
         df = self.load_dataset()
 
+        df["match_date"] = pd.to_datetime(df["match_date"])
+        df = df.sort_values("match_date").reset_index(drop=True)
+
         X = df[FEATURE_COLUMNS]
         y = df[TARGET_COLUMN]
 

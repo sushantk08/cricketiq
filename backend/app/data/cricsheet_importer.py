@@ -104,7 +104,7 @@ def extract_second_innings_deliveries(match_file: str) -> list[dict]:
         for delivery_block in first_innings_data.get("deliveries", [])
     )
     target_runs += 1
-
+    match_date = extract_match_metadata(match_file)["match_date"]
     deliveries = []
     total_runs = 0
     wickets_lost = 0
@@ -160,6 +160,7 @@ def extract_second_innings_deliveries(match_file: str) -> list[dict]:
         deliveries.append(
             {
                 "match_id": Path(match_file).stem,
+                "match_date": match_date,
                 "batting_team": batting_team,
                 "delivery": delivery_key,
                 "over": over_number,
@@ -218,6 +219,7 @@ def write_training_dataset(output_path: Path, limit: int | None = None) -> int:
 
     columns = [
         "match_id",
+        "match_date",
         "batting_team",
         "delivery",
         "over",
