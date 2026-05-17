@@ -6,12 +6,23 @@ from backend.app.ml.historical_win_probability import historical_win_predictor
 from backend.app.models.cricket import Delivery, Innings, Match
 from backend.app.schemas.prediction import (
     BallProbabilityPoint,
+    HistoricalModelEvaluationResponse,
     MatchWinProbabilityCurve,
     WinProbabilityRequest,
     WinProbabilityResponse,
 )
 
 router = APIRouter(prefix="/api/predictions", tags=["Predictions"])
+
+@router.get(
+    "/historical-model/evaluation",
+    response_model=HistoricalModelEvaluationResponse,
+)
+def get_historical_model_evaluation():
+    """Return evaluation metrics for the historical win-probability model."""
+    evaluation = historical_win_predictor.evaluate()
+
+    return HistoricalModelEvaluationResponse(**evaluation)
 
 
 @router.post(

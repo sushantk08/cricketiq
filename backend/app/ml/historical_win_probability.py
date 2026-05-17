@@ -107,6 +107,46 @@ class HistoricalWinProbabilityModel:
             ),
         }
 
+
+    def evaluate(self) -> dict:
+        df = self.load_dataset()
+        
+        df["match_date"] = pd.to_datetime(df["match_date"])
+        df = df.sort_values("match_date").reset_index(drop=True)
+        
+        X = df[FEATURE_COLUMNS]
+        y = df[TARGET_COLUMN]
+        
+        unique_dates = df["match_date"].drop_duplicates().sort_values()
+        cutoff_index = int(len(unique_dates) * 0.8)
+        cutoff_date = unique_dates.iloc[cutoff_index]
+        
+        train_mask = df["match_date"] <= cutoff_date
+        test_mask = df["match_date"] > cutoff_date
+        
+        X_train = X.loc[train_mask]
+        X_test = X.loc[test_mask]
+        y_train = y.loc[train_mask]
+        y_test = y.loc[test_mask]
+        
+        evaluation_model = LogisticRegression(max_iter=1000)
+        evaluation_model.fit(X_train, y_train)
+        
+        predictions = evaluation_model.predict(X_test)
+        probabilities = evaluation_model.predict_proba(X_test)[:, 1]
+        
+        return {
+            "rows": len(df),
+            "accuracy": accuracy_score(y_test, predictions),
+            "brier_score": brier_score_loss(y_test, probabilities),
+            "train_start_date": df.loc[train_mask, "match_date"].min().date().isoformat(),
+            "train_end_date": df.loc[train_mask, "match_date"].max().date().isoformat(),
+            "test_start_date": df.loc[test_mask, "match_date"].min().date().isoformat(),
+            "test_end_date": df.loc[test_mask, "match_date"].max().date().isoformat(),
+            }
+        
+    
+    
     def predict(
         self,
         runs_required: int,

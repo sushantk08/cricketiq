@@ -80,6 +80,24 @@ def test_win_probability_prediction(client):
         == 100
     )
 
+def test_historical_model_evaluation(client):
+    """Verify historical win-probability model evaluation endpoint."""
+    response = client.get(
+        "/api/predictions/historical-model/evaluation"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["rows"] == 364406
+    assert 0.0 <= data["accuracy"] <= 1.0
+    assert 0.0 <= data["brier_score"] <= 1.0
+
+    assert data["train_start_date"] == "2005-02-17"
+    assert data["train_end_date"] == "2025-03-23"
+    assert data["test_start_date"] == "2025-03-26"
+    assert data["test_end_date"] == "2026-09-09"
 
 def test_scenario_simulator(client):
     """Verify scenario simulation calculation."""

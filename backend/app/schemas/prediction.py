@@ -40,3 +40,12 @@ class MatchWinProbabilityCurve(BaseModel):
     defending_team: str
     target: int
     curve: List[BallProbabilityPoint]
+
+class HistoricalModelEvaluationResponse(BaseModel):
+    rows: int
+    accuracy: float
+    brier_score: float
+    train_start_date: str
+    train_end_date: str
+    test_start_date: str
+    test_end_date: str
