@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 function DashboardPage() {
   const [matches, setMatches] = useState([]);
+  const [modelEvaluation, setModelEvaluation] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,6 +22,25 @@ function DashboardPage() {
       .catch(() => {
         setMatches([]);
         setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetch(
+      "http://127.0.0.1:8000/api/predictions/historical-model/evaluation"
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch model evaluation.");
+        }
+
+        return response.json();
+      })
+      .then((data) => {
+        setModelEvaluation(data);
+      })
+      .catch(() => {
+        setModelEvaluation(null);
       });
   }, []);
 
@@ -150,6 +170,195 @@ function DashboardPage() {
               "Scheduled matches"
             )}
           </div>
+
+          {modelEvaluation && (
+            <div
+              className="glass-card"
+              style={{
+                marginBottom: "28px",
+                padding: "26px",
+              }}
+            >
+              <p
+                style={{
+                  color: "var(--accent-cyan)",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  marginBottom: "6px",
+                }}
+              >
+                ML MODEL
+              </p>
+
+              <h2
+                style={{
+                  fontSize: "23px",
+                  marginBottom: "8px",
+                }}
+              >
+                Historical Win Probability
+              </h2>
+
+              <p
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: "13px",
+                  marginBottom: "20px",
+                }}
+              >
+                Chronological evaluation on historical CricketIQ
+                match data.
+              </p>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: "14px",
+                }}
+              >
+                <div
+                  style={{
+                    background: "var(--bg-main)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "10px",
+                    padding: "16px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "11px",
+                    }}
+                  >
+                    ACCURACY
+                  </p>
+
+                  <h3
+                    style={{
+                      fontSize: "25px",
+                      marginTop: "6px",
+                    }}
+                  >
+                    {(modelEvaluation.accuracy * 100).toFixed(2)}%
+                  </h3>
+                </div>
+
+                <div
+                  style={{
+                    background: "var(--bg-main)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "10px",
+                    padding: "16px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "11px",
+                    }}
+                  >
+                    BRIER SCORE
+                  </p>
+
+                  <h3
+                    style={{
+                      fontSize: "25px",
+                      marginTop: "6px",
+                    }}
+                  >
+                    {modelEvaluation.brier_score.toFixed(4)}
+                  </h3>
+                </div>
+
+                <div
+                  style={{
+                    background: "var(--bg-main)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "10px",
+                    padding: "16px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "11px",
+                    }}
+                  >
+                    TRAINING
+                  </p>
+
+                  <h3
+                    style={{
+                      fontSize: "14px",
+                      marginTop: "6px",
+                    }}
+                  >
+                    {modelEvaluation.train_start_date}
+                    {" → "}
+                    {modelEvaluation.train_end_date}
+                  </h3>
+                </div>
+
+                <div
+                  style={{
+                    background: "var(--bg-main)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "10px",
+                    padding: "16px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "11px",
+                    }}
+                  >
+                    TESTING
+                  </p>
+
+                  <h3
+                    style={{
+                      fontSize: "14px",
+                      marginTop: "6px",
+                    }}
+                  >
+                    {modelEvaluation.test_start_date}
+                    {" → "}
+                    {modelEvaluation.test_end_date}
+                  </h3>
+                </div>
+
+                <div
+                  style={{
+                    background: "var(--bg-main)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "10px",
+                    padding: "16px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "11px",
+                    }}
+                  >
+                    HISTORICAL ROWS
+                  </p>
+
+                  <h3
+                    style={{
+                      fontSize: "25px",
+                      marginTop: "6px",
+                    }}
+                  >
+                    {modelEvaluation.rows.toLocaleString()}
+                  </h3>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div
             className="glass-card"
