@@ -105,14 +105,14 @@ def get_match_win_probability_curve(
     first_innings_deliveries = (
         db.query(Delivery)
         .filter(Delivery.innings_id == first_innings.id)
-        .order_by(Delivery.over, Delivery.ball)
+        .order_by(Delivery.over_number, Delivery.ball_number)
         .all()
     )
 
     second_innings_deliveries = (
         db.query(Delivery)
         .filter(Delivery.innings_id == second_innings.id)
-        .order_by(Delivery.over, Delivery.ball)
+        .order_by(Delivery.over_number, Delivery.ball_number)
         .all()
     )
 
@@ -146,8 +146,8 @@ def get_match_win_probability_curve(
         runs_required = max(0, target - current_score)
 
         balls_completed = (
-            delivery.over * 6
-            + delivery.ball
+            delivery.over_number * 6
+            + delivery.ball_number
         )
 
         balls_remaining = max(0, 120 - balls_completed)
@@ -167,8 +167,8 @@ def get_match_win_probability_curve(
 
         curve.append(
             BallProbabilityPoint(
-                over=delivery.over,
-                ball=delivery.ball,
+                over=delivery.over_number,
+                ball=delivery.ball_number,
                 score=current_score,
                 wickets=wickets_lost,
                 runs_required=runs_required,
@@ -180,8 +180,8 @@ def get_match_win_probability_curve(
 
     return MatchWinProbabilityCurve(
         match_id=match_id,
-        chasing_team=chasing_team,
-        defending_team=defending_team,
+        chasing_team=chasing_team.name,
+        defending_team=defending_team.name,
         target=target,
         curve=curve,
     )

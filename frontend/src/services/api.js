@@ -37,6 +37,12 @@ export async function fetchMatchTurningPoints(id) {
   return res.json()
 }
 
+export async function fetchMatchWinProbabilityCurve(id) {
+  const res = await fetch(`${API_BASE}/predictions/match/${id}/win-probability`)
+  if (!res.ok) throw new Error('Failed to fetch win probability curve')
+  return res.json()
+}
+
 // --- DECISION REPLAY & PLAYERS ---
 export async function fetchDecisionPoints(matchId) {
   const res = await fetch(`${API_BASE}/matches/${matchId}/decision-points`)

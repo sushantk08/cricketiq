@@ -2,12 +2,23 @@ import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Clock, Zap, MapPin } from 'lucide-react'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts'
 import PageWrapper from '../components/PageWrapper'
 import {
   fetchMatchById,
   fetchMatchScorecard,
   fetchMatchTurningPoints,
   fetchMatchAnalytics,
+  fetchMatchWinProbabilityCurve,
 } from '../services/api'
 
 export default function MatchDetailPage() {
@@ -16,6 +27,7 @@ export default function MatchDetailPage() {
   const [scorecard, setScorecard] = useState(null)
   const [turningPoints, setTurningPoints] = useState(null)
   const [analytics, setAnalytics] = useState(null)
+  const [winProbability, setWinProbability] = useState(null)
   const [activeTab, setActiveTab] = useState('scorecard')
   const [activeInnings, setActiveInnings] = useState(0)
 
@@ -33,6 +45,10 @@ export default function MatchDetailPage() {
     fetchMatchAnalytics(id)
       .then(setAnalytics)
       .catch(() => setAnalytics(null))
+
+    fetchMatchWinProbabilityCurve(id)
+      .then(setWinProbability)
+      .catch(() => setWinProbability(null))
   }, [id])
 
   if (!match) {
@@ -45,6 +61,17 @@ export default function MatchDetailPage() {
 
   const hasDeliveries = scorecard && scorecard.innings && scorecard.innings.length > 0
   const currentInnings = hasDeliveries ? scorecard.innings[activeInnings] : null
+
+  const winProbabilityData =
+  winProbability?.curve?.map((point) => ({
+    over: `${point.over}.${point.ball}`,
+    chasing: point.batting_win_prob,
+    defending: point.bowling_win_prob,
+    score: point.score,
+    wickets: point.wickets,
+    runsRequired: point.runs_required,
+    ballsRemaining: point.balls_remaining,
+  })) || []
 
   return (
     <PageWrapper>
@@ -133,7 +160,7 @@ export default function MatchDetailPage() {
 
       {/* Navigation Tabs */}
       <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px', marginBottom: '24px' }}>
-        {['scorecard', 'analytics', 'turning-points'].map(tab => (
+        {['scorecard', 'analytics', 'turning-points', 'win-probability'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -149,10 +176,12 @@ export default function MatchDetailPage() {
             }}
           >
             {tab === 'scorecard'
-                ? 'Scorecard'
-                : tab === 'analytics'
-                  ? 'Analytics'
-                  : 'Critical Turning Points'}
+               ? 'Scorecard'
+               : tab === 'analytics'
+               ? 'Analytics'
+               : tab === 'turning-points'
+               ? 'Critical Turning Points'
+               : 'Win Probability'}
           </button>
         ))}
       </div>
@@ -279,6 +308,227 @@ export default function MatchDetailPage() {
           </div>
         </div>
       ))
+    )}
+  </div>
+)}
+
+
+{/* WIN PROBABILITY VIEW */}
+{activeTab === 'win-probability' && (
+  <div className="glass-card" style={{ padding: '24px' }}>
+    {!winProbability || !winProbability.curve?.length ? (
+      <div
+        style={{
+          textAlign: 'center',
+          padding: '48px 24px',
+          border: '1px dashed var(--border-subtle)',
+          borderRadius: '10px',
+        }}
+      >
+        <h3 style={{ marginBottom: '8px' }}>
+          Win Probability Unavailable
+        </h3>
+
+        <p style={{ color: 'var(--text-muted)' }}>
+          Win probability requires completed ball-by-ball data for both innings.
+        </p>
+      </div>
+    ) : (
+      <>
+        <div style={{ marginBottom: '24px' }}>
+          <p
+            style={{
+              color: 'var(--accent-cyan)',
+              fontSize: '12px',
+              fontWeight: 700,
+              marginBottom: '6px',
+            }}
+          >
+            HISTORICAL ML MODEL
+          </p>
+
+          <h2 style={{ fontSize: '1.4rem', marginBottom: '8px' }}>
+            Win Probability Curve
+          </h2>
+
+          <p
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.85rem',
+            }}
+          >
+            {winProbability.chasing_team} chasing {winProbability.target}
+            {' · '}
+            {winProbability.defending_team} defending
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns:
+              'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '14px',
+            marginBottom: '24px',
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--bg-main)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '10px',
+              padding: '16px',
+            }}
+          >
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.75rem',
+              }}
+            >
+              CHASING TEAM
+            </span>
+
+            <h3 style={{ marginTop: '6px' }}>
+              {winProbability.chasing_team}
+            </h3>
+          </div>
+
+          <div
+            style={{
+              background: 'var(--bg-main)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '10px',
+              padding: '16px',
+            }}
+          >
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.75rem',
+              }}
+            >
+              TARGET
+            </span>
+
+            <h3 style={{ marginTop: '6px' }}>
+              {winProbability.target}
+            </h3>
+          </div>
+
+          <div
+            style={{
+              background: 'var(--bg-main)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '10px',
+              padding: '16px',
+            }}
+          >
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.75rem',
+              }}
+            >
+              DELIVERY STATES
+            </span>
+
+            <h3 style={{ marginTop: '6px' }}>
+              {winProbability.curve.length}
+            </h3>
+          </div>
+        </div>
+
+        <div
+  style={{
+    width: '100%',
+    height: 420,
+    marginBottom: '20px',
+  }}
+>
+  <ResponsiveContainer width="100%" height="100%">
+    <LineChart
+      data={winProbabilityData}
+      margin={{
+        top: 10,
+        right: 20,
+        left: 0,
+        bottom: 10,
+      }}
+    >
+      <CartesianGrid
+        strokeDasharray="3 3"
+        stroke="var(--border-subtle)"
+      />
+
+      <XAxis
+        dataKey="over"
+        tick={{
+          fill: 'var(--text-muted)',
+          fontSize: 11,
+        }}
+        interval="preserveStartEnd"
+      />
+
+      <YAxis
+        domain={[0, 100]}
+        tick={{
+          fill: 'var(--text-muted)',
+          fontSize: 11,
+        }}
+        tickFormatter={(value) => `${value}%`}
+      />
+
+      <Tooltip
+        contentStyle={{
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '8px',
+          color: 'var(--text-main)',
+        }}
+        formatter={(value, name) => [
+            `${value}%`,
+        name === 'Chasing' ? 'Chasing' : 'Defending',
+        ]}
+        labelFormatter={(label) => `Over ${label}`}
+      />
+
+      <Legend />
+
+      <Line
+        type="monotone"
+        dataKey="chasing"
+        name="Chasing"
+        stroke="var(--accent-green)"
+        strokeWidth={3}
+        dot={false}
+        activeDot={{ r: 5 }}
+      />
+
+      <Line
+        type="monotone"
+        dataKey="defending"
+        name="Defending"
+        stroke="var(--accent-orange)"
+        strokeWidth={3}
+        dot={false}
+        activeDot={{ r: 5 }}
+      />
+    </LineChart>
+  </ResponsiveContainer>
+</div>
+
+        <p
+          style={{
+            color: 'var(--text-muted)',
+            fontSize: '0.75rem',
+            marginTop: '18px',
+          }}
+        >
+          Probabilities are statistical estimates generated from historical
+          cricket data, not guarantees of match outcome.
+        </p>
+      </>
     )}
   </div>
 )}
