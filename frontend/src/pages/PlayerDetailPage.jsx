@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { fetchPlayerIntelligence } from "../services/api";
 
 function PlayerDetailPage() {
   const { id } = useParams();
 
   const [player, setPlayer] = useState(null);
+  const [intelligence, setIntelligence] = useState(null);
+
   const [loading, setLoading] = useState(true);
+  const [intelligenceLoading, setIntelligenceLoading] = useState(true);
+
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -14,9 +19,7 @@ function PlayerDetailPage() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          `http://127.0.0.1:8000/api/players/${id}/stats`
-        );
+        const response = await fetch(`/api/players/${id}/stats`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch player data.");
@@ -33,6 +36,24 @@ function PlayerDetailPage() {
     };
 
     fetchPlayer();
+  }, [id]);
+
+  useEffect(() => {
+    const loadIntelligence = async () => {
+      try {
+        setIntelligenceLoading(true);
+
+        const data = await fetchPlayerIntelligence(id);
+        setIntelligence(data);
+      } catch (err) {
+        console.error("Failed to load player intelligence:", err);
+        setIntelligence(null);
+      } finally {
+        setIntelligenceLoading(false);
+      }
+    };
+
+    loadIntelligence();
   }, [id]);
 
   if (loading) {
@@ -60,6 +81,7 @@ function PlayerDetailPage() {
       >
         <div className="glass-card">
           <h1 style={{ marginBottom: "10px" }}>Player Not Found</h1>
+
           <p style={{ color: "var(--text-muted)" }}>
             {error || "Unable to load player information."}
           </p>
@@ -118,6 +140,75 @@ function PlayerDetailPage() {
     </div>
   );
 
+  const insightCardStyle = {
+    background: "var(--bg-main)",
+    border: "1px solid var(--border-subtle)",
+    borderRadius: "10px",
+    padding: "18px",
+  };
+
+  const renderInsightList = (items, emptyMessage) => {
+    if (!items || items.length === 0) {
+      return (
+        <p
+          style={{
+            color: "var(--text-muted)",
+            fontSize: "13px",
+          }}
+        >
+          {emptyMessage}
+        </p>
+      );
+    }
+
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+        }}
+      >
+        {items.map((item, index) => (
+          <div key={`${item.title}-${index}`} style={insightCardStyle}>
+            <div
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                color: "var(--accent-cyan)",
+                textTransform: "uppercase",
+                marginBottom: "6px",
+              }}
+            >
+              {item.category}
+            </div>
+
+            <div
+              style={{
+                fontSize: "15px",
+                fontWeight: 700,
+                marginBottom: "6px",
+              }}
+            >
+              {item.title}
+            </div>
+
+            <p
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "13px",
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >
+              {item.detail}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div
       style={{
@@ -138,6 +229,7 @@ function PlayerDetailPage() {
         ← Back to Players
       </Link>
 
+      {/* Player Header */}
       <div
         className="glass-card"
         style={{
@@ -202,10 +294,158 @@ function PlayerDetailPage() {
         </div>
       </div>
 
+      {/* Player Intelligence */}
+      <div
+        className="glass-card"
+        style={{
+          marginBottom: "24px",
+        }}
+      >
+        <div style={{ marginBottom: "20px" }}>
+          <p
+            style={{
+              color: "var(--accent-cyan)",
+              fontSize: "12px",
+              fontWeight: 700,
+              marginBottom: "6px",
+            }}
+          >
+            PLAYER INTELLIGENCE
+          </p>
+
+          <h2
+            style={{
+              fontSize: "22px",
+              marginBottom: "8px",
+            }}
+          >
+            Decision-Oriented Player Assessment
+          </h2>
+
+          {intelligenceLoading ? (
+            <p
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "13px",
+              }}
+            >
+              Generating player intelligence...
+            </p>
+          ) : intelligence ? (
+            <p
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "14px",
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >
+              {intelligence.overall_assessment}
+            </p>
+          ) : (
+            <p
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "13px",
+              }}
+            >
+              Player intelligence is currently unavailable.
+            </p>
+          )}
+        </div>
+
+        {intelligence && !intelligenceLoading && (
+          <>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: "20px",
+                marginBottom: "20px",
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    fontSize: "16px",
+                    marginBottom: "12px",
+                  }}
+                >
+                  Strengths
+                </h3>
+
+                {renderInsightList(
+                  intelligence.strengths,
+                  "No significant strengths identified."
+                )}
+              </div>
+
+              <div>
+                <h3
+                  style={{
+                    fontSize: "16px",
+                    marginBottom: "12px",
+                  }}
+                >
+                  Weaknesses
+                </h3>
+
+                {renderInsightList(
+                  intelligence.weaknesses,
+                  "No significant weaknesses identified."
+                )}
+              </div>
+
+              <div>
+                <h3
+                  style={{
+                    fontSize: "16px",
+                    marginBottom: "12px",
+                  }}
+                >
+                  Recommendations
+                </h3>
+
+                {renderInsightList(
+                  intelligence.recommendations,
+                  "No recommendations available."
+                )}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "rgba(0, 210, 255, 0.05)",
+                border: "1px solid rgba(0, 210, 255, 0.15)",
+                borderRadius: "8px",
+                padding: "12px 14px",
+              }}
+            >
+              <p
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: "12px",
+                  lineHeight: 1.6,
+                  margin: 0,
+                }}
+              >
+                <strong style={{ color: "var(--text-main)" }}>
+                  Evidence:
+                </strong>{" "}
+                {intelligence.evidence_summary}
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Batting and Bowling */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gridTemplateColumns:
+            "repeat(auto-fit, minmax(300px, 1fr))",
           gap: "20px",
           marginBottom: "24px",
         }}
@@ -223,7 +463,12 @@ function PlayerDetailPage() {
               BATTING
             </p>
 
-            <h2 style={{ fontSize: "22px", marginBottom: "18px" }}>
+            <h2
+              style={{
+                fontSize: "22px",
+                marginBottom: "18px",
+              }}
+            >
               Batting Performance
             </h2>
 
@@ -258,7 +503,12 @@ function PlayerDetailPage() {
               BOWLING
             </p>
 
-            <h2 style={{ fontSize: "22px", marginBottom: "18px" }}>
+            <h2
+              style={{
+                fontSize: "22px",
+                marginBottom: "18px",
+              }}
+            >
               Bowling Performance
             </h2>
 
@@ -287,9 +537,19 @@ function PlayerDetailPage() {
         )}
       </div>
 
+      {/* Batting Phase Analysis */}
       {batting && (
-        <div className="glass-card" style={{ marginBottom: "24px" }}>
-          <div style={{ marginBottom: "20px" }}>
+        <div
+          className="glass-card"
+          style={{
+            marginBottom: "24px",
+          }}
+        >
+          <div
+            style={{
+              marginBottom: "20px",
+            }}
+          >
             <p
               style={{
                 color: "var(--accent-cyan)",
@@ -301,7 +561,11 @@ function PlayerDetailPage() {
               PHASE ANALYSIS
             </p>
 
-            <h2 style={{ fontSize: "22px" }}>
+            <h2
+              style={{
+                fontSize: "22px",
+              }}
+            >
               Batting Phase Performance
             </h2>
           </div>
@@ -344,7 +608,11 @@ function PlayerDetailPage() {
                     }}
                   >
                     Runs:{" "}
-                    <strong style={{ color: "var(--text-main)" }}>
+                    <strong
+                      style={{
+                        color: "var(--text-main)",
+                      }}
+                    >
                       {data?.runs ?? 0}
                     </strong>
                   </p>
@@ -357,7 +625,11 @@ function PlayerDetailPage() {
                     }}
                   >
                     Balls:{" "}
-                    <strong style={{ color: "var(--text-main)" }}>
+                    <strong
+                      style={{
+                        color: "var(--text-main)",
+                      }}
+                    >
                       {data?.balls ?? 0}
                     </strong>
                   </p>
@@ -369,7 +641,11 @@ function PlayerDetailPage() {
                     }}
                   >
                     Strike Rate:{" "}
-                    <strong style={{ color: "var(--text-main)" }}>
+                    <strong
+                      style={{
+                        color: "var(--text-main)",
+                      }}
+                    >
                       {data?.strike_rate ?? 0}
                     </strong>
                   </p>
@@ -380,119 +656,158 @@ function PlayerDetailPage() {
         </div>
       )}
 
+      {/* Bowling Phase Analysis */}
       {bowling && (
-  <div className="glass-card" style={{ marginBottom: "24px" }}>
-    <div style={{ marginBottom: "20px" }}>
-      <p
-        style={{
-          color: "var(--accent-cyan)",
-          fontSize: "12px",
-          fontWeight: 700,
-          marginBottom: "6px",
-        }}
-      >
-        PHASE ANALYSIS
-      </p>
-
-      <h2 style={{ fontSize: "22px" }}>
-        Bowling Phase Performance
-      </h2>
-    </div>
-
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns:
-          "repeat(auto-fit, minmax(220px, 1fr))",
-        gap: "16px",
-      }}
-    >
-      {phaseCards.map((phase) => {
-        const data = bowling.phases?.[phase.key];
-
-        return (
+        <div
+          className="glass-card"
+          style={{
+            marginBottom: "24px",
+          }}
+        >
           <div
-            key={phase.key}
             style={{
-              background: "var(--bg-main)",
-              border: "1px solid var(--border-subtle)",
-              borderRadius: "10px",
-              padding: "18px",
+              marginBottom: "20px",
             }}
           >
-            <h3
-              style={{
-                fontSize: "16px",
-                marginBottom: "16px",
-              }}
-            >
-              {phase.name}
-            </h3>
-
             <p
               style={{
-                color: "var(--text-muted)",
-                fontSize: "13px",
-                marginBottom: "8px",
+                color: "var(--accent-cyan)",
+                fontSize: "12px",
+                fontWeight: 700,
+                marginBottom: "6px",
               }}
             >
-              Overs:{" "}
-              <strong style={{ color: "var(--text-main)" }}>
-                {data?.overs ?? 0}
-              </strong>
+              PHASE ANALYSIS
             </p>
 
-            <p
+            <h2
               style={{
-                color: "var(--text-muted)",
-                fontSize: "13px",
-                marginBottom: "8px",
+                fontSize: "22px",
               }}
             >
-              Runs:{" "}
-              <strong style={{ color: "var(--text-main)" }}>
-                {data?.runs ?? 0}
-              </strong>
-            </p>
-
-            <p
-              style={{
-                color: "var(--text-muted)",
-                fontSize: "13px",
-                marginBottom: "8px",
-              }}
-            >
-              Wickets:{" "}
-              <strong style={{ color: "var(--text-main)" }}>
-                {data?.wickets ?? 0}
-              </strong>
-            </p>
-
-            <p
-              style={{
-                color: "var(--text-muted)",
-                fontSize: "13px",
-              }}
-            >
-              Economy:{" "}
-              <strong style={{ color: "var(--text-main)" }}>
-                {data?.economy ?? 0}
-              </strong>
-            </p>
+              Bowling Phase Performance
+            </h2>
           </div>
-        );
-      })}
-    </div>
-  </div>
-)}
 
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "16px",
+            }}
+          >
+            {phaseCards.map((phase) => {
+              const data = bowling.phases?.[phase.key];
+
+              return (
+                <div
+                  key={phase.key}
+                  style={{
+                    background: "var(--bg-main)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "10px",
+                    padding: "18px",
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: "16px",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    {phase.name}
+                  </h3>
+
+                  <p
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "13px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Overs:{" "}
+                    <strong
+                      style={{
+                        color: "var(--text-main)",
+                      }}
+                    >
+                      {data?.overs ?? 0}
+                    </strong>
+                  </p>
+
+                  <p
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "13px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Runs:{" "}
+                    <strong
+                      style={{
+                        color: "var(--text-main)",
+                      }}
+                    >
+                      {data?.runs ?? 0}
+                    </strong>
+                  </p>
+
+                  <p
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "13px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Wickets:{" "}
+                    <strong
+                      style={{
+                        color: "var(--text-main)",
+                      }}
+                    >
+                      {data?.wickets ?? 0}
+                    </strong>
+                  </p>
+
+                  <p
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "13px",
+                    }}
+                  >
+                    Economy:{" "}
+                    <strong
+                      style={{
+                        color: "var(--text-main)",
+                      }}
+                    >
+                      {data?.economy ?? 0}
+                    </strong>
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* No Data */}
       {!batting && !bowling && (
         <div className="glass-card">
-          <h2 style={{ marginBottom: "8px" }}>
+          <h2
+            style={{
+              marginBottom: "8px",
+            }}
+          >
             No Performance Data
           </h2>
 
-          <p style={{ color: "var(--text-muted)" }}>
+          <p
+            style={{
+              color: "var(--text-muted)",
+            }}
+          >
             No batting or bowling statistics are available for
             this player.
           </p>

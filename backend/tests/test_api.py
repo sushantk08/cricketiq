@@ -177,3 +177,22 @@ def test_ai_report_saved_to_mongodb(client):
     assert stored["match_title"] == report["match_title"]
     assert stored["winner"] == report["winner"]
     assert stored["grounded_in_database_facts"] is True
+
+def test_player_intelligence(client):
+    """Verify database-grounded player intelligence."""
+    response = client.get("/api/players/7/intelligence")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["player_id"] == 7
+    assert data["player_name"] == "Axar Patel"
+    assert data["role"] == "ALL_ROUNDER"
+    assert data["team_name"] == "India"
+
+    assert data["overall_assessment"]
+    assert isinstance(data["strengths"], list)
+    assert isinstance(data["weaknesses"], list)
+    assert isinstance(data["recommendations"], list)
+    assert data["evidence_summary"]

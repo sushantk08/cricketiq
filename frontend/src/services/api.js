@@ -71,6 +71,12 @@ export async function fetchPlayers(teamId) {
   return res.json()
 }
 
+export async function fetchPlayerIntelligence(playerId) {
+  const res = await fetch(`${API_BASE}/players/${playerId}/intelligence`)
+  if (!res.ok) throw new Error('Failed to fetch player intelligence')
+  return res.json()
+}
+
 export async function fetchTeams() {
   const res = await fetch(`${API_BASE}/teams`)
   if (!res.ok) throw new Error('Failed to fetch teams')

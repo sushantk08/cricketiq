@@ -6,6 +6,10 @@ from backend.app.database.session import get_db
 from backend.app.models.cricket import Player
 from backend.app.schemas.player import PlayerBrief, PlayerStatsResponse
 from backend.app.services.player_service import compute_player_analytics
+from backend.app.schemas.player_intelligence import PlayerIntelligenceResponse
+from backend.app.services.player_intelligence_service import (
+    generate_player_intelligence,
+)
 
 router = APIRouter(prefix="/api/players", tags=["Players"])
 
@@ -42,3 +46,21 @@ def get_player_statistics(player_id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND, detail="Player not found"
         )
     return stats
+
+@router.get(
+    "/{player_id}/intelligence",
+    response_model=PlayerIntelligenceResponse,
+)
+def get_player_intelligence(
+    player_id: int,
+    db: Session = Depends(get_db),
+):
+    intelligence = generate_player_intelligence(db, player_id)
+
+    if not intelligence:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Player not found",
+        )
+
+    return intelligence
