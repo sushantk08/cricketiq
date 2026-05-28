@@ -267,3 +267,158 @@ def write_training_dataset(output_path: Path, limit: int | None = None) -> int:
                 row_count += 1
 
     return row_count
+
+def build_player_historical_rows(limit: int | None = None) -> list[dict]:
+    """
+    Build player-level historical delivery rows from the full
+    Cricsheet men's international T20 dataset.
+
+    Each row represents one delivery and contains both batter
+    and bowler information so downstream analytics can aggregate
+    player performance without relying on the small PostgreSQL seed.
+    """
+    files = get_match_files()
+
+    if limit is not None:
+        files = files[:limit]
+
+    rows = []
+
+    for match_file in files:
+        if not is_male_international_t20(match_file):
+            continue
+
+        data = load_match(match_file)
+        info = data.get("info", {})
+
+        match_date = info.get("dates", [None])[0]
+        teams = info.get("teams", [])
+        winner = info.get("outcome", {}).get("winner")
+
+        for innings_number, innings_block in enumerate(
+            data.get("innings", []),
+            start=1,
+        ):
+            innings_key = next(iter(innings_block))
+            innings_data = innings_block[innings_key]
+
+            batting_team = innings_data.get("team")
+
+            for delivery_block in innings_data.get("deliveries", []):
+                delivery_key = next(iter(delivery_block))
+                delivery = delivery_block[delivery_key]
+
+                runs = delivery.get("runs", {})
+                extras = delivery.get("extras", {})
+                over_number = int(float(delivery_key))
+                ball_number = int(
+                     round((float(delivery_key) % 1) * 10)
+                )
+
+
+                wicket_data = delivery.get("wicket")
+
+                if isinstance(wicket_data, list):
+                     wickets = wicket_data
+                elif isinstance(wicket_data, dict):
+                     wickets = [wicket_data]
+                else:
+                     wickets = delivery.get("wickets", [])
+
+                player_dismissed = None
+                dismissal_type = None
+
+                if wickets:
+                    wicket = wickets[0]
+
+                    if isinstance(wicket, dict):
+                        player_dismissed = (
+                             wicket.get("player_out")
+                             or wicket.get("player_dismissed")
+                        )
+                        dismissal_type = (
+                            wicket.get("kind")
+                            or wicket.get("dismissal_type")
+                        )
+
+                rows.append(
+                    {
+                        "match_id": Path(match_file).stem,
+                        "match_date": match_date,
+                        "innings_number": innings_number,
+                        "batting_team": batting_team,
+                        "batter": delivery.get("batter") or delivery.get("batsman"),
+                        "bowler": delivery.get("bowler"),
+                        "over": over_number,
+                        "ball": ball_number,
+                        "runs_batter": runs.get("batter", 0),
+                        "runs_extras": runs.get("extras", 0),
+                        "runs_total": runs.get("total", 0),
+                        "extra_type": (
+                            next(iter(extras))
+                            if extras
+                            else None
+                        ),
+                        "is_legal": not any(
+                            extra_type in extras
+                            for extra_type in [
+                                "wides",
+                                "noballs",
+                            ]
+                        ),
+                        "is_wicket": bool(wickets),
+                        "player_dismissed": player_dismissed,
+                        "dismissal_type": dismissal_type,
+                        "winner": winner,
+                        "teams": "|".join(teams),
+                    }
+                )
+
+    return rows
+
+def write_player_historical_dataset(
+    output_path: Path,
+    limit: int | None = None,
+) -> int:
+    """Write Cricsheet player-level historical delivery data to CSV."""
+    rows = build_player_historical_rows(limit=limit)
+
+    columns = [
+        "match_id",
+        "match_date",
+        "innings_number",
+        "batting_team",
+        "batter",
+        "bowler",
+        "over",
+        "ball",
+        "runs_batter",
+        "runs_extras",
+        "runs_total",
+        "extra_type",
+        "is_legal",
+        "is_wicket",
+        "player_dismissed",
+        "dismissal_type",
+        "winner",
+        "teams",
+    ]
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open(
+        "w",
+        newline="",
+        encoding="utf-8",
+    ) as csv_file:
+        writer = csv.DictWriter(
+            csv_file,
+            fieldnames=columns,
+        )
+
+        writer.writeheader()
+
+        for row in rows:
+            writer.writerow(row)
+
+    return len(rows)
