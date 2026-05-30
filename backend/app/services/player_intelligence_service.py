@@ -45,19 +45,64 @@ def load_historical_data() -> pd.DataFrame:
     return df
 
 
-def get_phase(over: int) -> str:
-    """Classify a T20 over into a cricket phase."""
-    if over < 6:
-        return "powerplay"
-    if over < 15:
-        return "middle"
-    return "death"
+def normalize_player_name(name: str) -> str:
+    """
+    Normalize names so database names such as
+    'Travis Head' can be matched against Cricsheet
+    names such as 'TM Head'.
+    """
+    return (
+        name.lower()
+        .replace(".", "")
+        .replace("-", " ")
+        .replace("_", " ")
+        .strip()
+    )
 
 
-def safe_ratio(numerator: float, denominator: float) -> float:
-    if denominator == 0:
-        return 0.0
-    return numerator / denominator
+def player_name_matches(dataset_name: str, database_name: str) -> bool:
+    """
+    Match a Cricsheet player name against the PostgreSQL player name.
+
+    Examples:
+        Travis Head -> TM Head
+        Virat Kohli -> V Kohli
+        Jasprit Bumrah -> JJ Bumrah
+    """
+    dataset = normalize_player_name(dataset_name)
+    database = normalize_player_name(database_name)
+
+    if not dataset or not database:
+        return False
+
+    # Exact match.
+    if dataset == database:
+        return True
+
+    database_parts = database.split()
+    dataset_parts = dataset.split()
+
+    if not database_parts or not dataset_parts:
+        return False
+
+    # Surname must match.
+    database_last_name = database_parts[-1]
+    dataset_last_name = dataset_parts[-1]
+
+    if database_last_name != dataset_last_name:
+        return False
+
+    database_first = database_parts[0]
+    dataset_first = dataset_parts[0]
+
+    if not database_first or not dataset_first:
+        return False
+
+    # Cricsheet commonly stores names as initials + surname.
+    # Example:
+    # Travis Head -> TM Head
+    # Virat Kohli -> V Kohli
+    return database_first[0] == dataset_first[0]
 
 
 def generate_player_intelligence(
@@ -67,7 +112,7 @@ def generate_player_intelligence(
     """
     Generate player intelligence from the full Cricsheet historical dataset.
 
-    PostgreSQL is used only for player identity/role/team information.
+    PostgreSQL is used for player identity, role and team information.
     Performance statistics come from Cricsheet.
     """
     player = (
@@ -83,16 +128,33 @@ def generate_player_intelligence(
 
     player_name = player.name.strip()
 
-    batting_df = df[df["batter"].str.casefold() == player_name.casefold()].copy()
-    bowling_df = df[df["bowler"].str.casefold() == player_name.casefold()].copy()
+    # Match the PostgreSQL player against Cricsheet's abbreviated names.
+    batting_df = df[
+        df["batter"].apply(
+            lambda name: player_name_matches(name, player_name)
+        )
+    ].copy()
+
+    bowling_df = df[
+        df["bowler"].apply(
+            lambda name: player_name_matches(name, player_name)
+        )
+    ].copy()
 
     strengths: list[PlayerInsight] = []
     weaknesses: list[PlayerInsight] = []
     recommendations: list[PlayerInsight] = []
 
+    # ---------------------------------------------------------
+    # Batting analytics
+    # ---------------------------------------------------------
+
     batting_runs = float(batting_df["runs_batter"].sum())
+
     batting_balls = int(
-        batting_df.loc[batting_df["is_legal"] == True].shape[0]  # noqa: E712
+        batting_df.loc[
+            batting_df["is_legal"] == True  # noqa: E712
+        ].shape[0]
     )
 
     batting_strike_rate = (
@@ -121,6 +183,7 @@ def generate_player_intelligence(
     ) * 100
 
     boundary_runs = (fours * 4) + (sixes * 6)
+
     boundary_run_percentage = safe_ratio(
         boundary_runs,
         batting_runs,
@@ -138,7 +201,9 @@ def generate_player_intelligence(
         batting_df["phase"] = batting_df["over"].apply(get_phase)
 
         for phase in ("powerplay", "middle", "death"):
-            phase_df = batting_df[batting_df["phase"] == phase]
+            phase_df = batting_df[
+                batting_df["phase"] == phase
+            ]
 
             phase_balls = int(
                 phase_df.loc[
@@ -146,7 +211,9 @@ def generate_player_intelligence(
                 ].shape[0]
             )
 
-            phase_runs = float(phase_df["runs_batter"].sum())
+            phase_runs = float(
+                phase_df["runs_batter"].sum()
+            )
 
             batting_phase[phase] = {
                 "runs": phase_runs,
@@ -168,22 +235,23 @@ def generate_player_intelligence(
 
     bowling_legal_balls = len(bowling_legal)
 
-    # Wides and no-balls are bowler-conceded runs.
+    # Start with total delivery runs.
+    bowling_runs = float(
+        bowling_df["runs_total"].sum()
+    )
+
     # Byes and leg-byes are not charged to the bowler.
-    bowling_runs = float(bowling_df["runs_total"].sum())
+    if not bowling_df.empty and "extra_type" in bowling_df.columns:
+        non_bowler_extras = bowling_df["extra_type"].isin(
+            ["byes", "legbyes"]
+        )
 
-    if not bowling_df.empty:
-        if "extra_type" in bowling_df.columns:
-            non_bowler_extras = bowling_df["extra_type"].isin(
-                ["byes", "legbyes"]
-            )
-
-            bowling_runs -= float(
-                bowling_df.loc[
-                    non_bowler_extras,
-                    "runs_extras",
-                ].sum()
-            )
+        bowling_runs -= float(
+            bowling_df.loc[
+                non_bowler_extras,
+                "runs_extras",
+            ].sum()
+        )
 
     bowling_wickets_df = bowling_df.loc[
         (bowling_df["is_wicket"] == True)  # noqa: E712
@@ -196,9 +264,12 @@ def generate_player_intelligence(
         )
     ]
 
-    bowling_wickets = len(bowling_wickets_df)
+    bowling_wickets = len(
+        bowling_wickets_df
+    )
 
     bowling_overs = bowling_legal_balls / 6
+
     bowling_economy = (
         bowling_runs / bowling_overs
         if bowling_overs > 0
@@ -207,7 +278,7 @@ def generate_player_intelligence(
 
     bowling_dot_balls = int(
         (
-            (bowling_legal["runs_total"] == 0)
+            bowling_legal["runs_total"] == 0
         ).sum()
     )
 
@@ -225,10 +296,14 @@ def generate_player_intelligence(
     bowling_phase = {}
 
     if not bowling_df.empty:
-        bowling_df["phase"] = bowling_df["over"].apply(get_phase)
+        bowling_df["phase"] = bowling_df["over"].apply(
+            get_phase
+        )
 
         for phase in ("powerplay", "middle", "death"):
-            phase_df = bowling_df[bowling_df["phase"] == phase]
+            phase_df = bowling_df[
+                bowling_df["phase"] == phase
+            ]
 
             phase_legal = phase_df.loc[
                 phase_df["is_legal"] == True  # noqa: E712
@@ -236,12 +311,14 @@ def generate_player_intelligence(
 
             phase_balls = len(phase_legal)
 
-            phase_runs = float(phase_df["runs_total"].sum())
+            phase_runs = float(
+                phase_df["runs_total"].sum()
+            )
 
             if "extra_type" in phase_df.columns:
-                non_bowler_extras = phase_df["extra_type"].isin(
-                    ["byes", "legbyes"]
-                )
+                non_bowler_extras = phase_df[
+                    "extra_type"
+                ].isin(["byes", "legbyes"])
 
                 phase_runs -= float(
                     phase_df.loc[
@@ -281,6 +358,7 @@ def generate_player_intelligence(
     # ---------------------------------------------------------
 
     if batting_runs > 0:
+
         if batting_strike_rate >= 140:
             strengths.append(
                 PlayerInsight(
@@ -288,8 +366,8 @@ def generate_player_intelligence(
                     title="High scoring rate",
                     detail=(
                         f"Historical batting strike rate is "
-                        f"{batting_strike_rate:.1f}, indicating strong "
-                        "run-scoring tempo."
+                        f"{batting_strike_rate:.1f}, indicating "
+                        "strong run-scoring tempo."
                     ),
                 )
             )
@@ -300,8 +378,8 @@ def generate_player_intelligence(
                     category="batting",
                     title="Boundary-driven scoring",
                     detail=(
-                        f"{boundary_run_percentage:.1f}% of batting runs "
-                        "come from boundaries."
+                        f"{boundary_run_percentage:.1f}% of "
+                        "batting runs come from boundaries."
                     ),
                 )
             )
@@ -312,17 +390,22 @@ def generate_player_intelligence(
                     category="batting",
                     title="Good strike rotation",
                     detail=(
-                        f"Dot-ball percentage is {dot_ball_percentage:.1f}%, "
-                        "showing the ability to keep the scoreboard moving."
+                        f"Dot-ball percentage is "
+                        f"{dot_ball_percentage:.1f}%, showing "
+                        "the ability to keep the scoreboard moving."
                     ),
                 )
             )
 
-        death_batting = batting_phase.get("death", {})
+        death_batting = batting_phase.get(
+            "death",
+            {},
+        )
 
-        if death_batting.get("balls", 0) >= 50 and death_batting.get(
-            "strike_rate", 0
-        ) >= 145:
+        if (
+            death_batting.get("balls", 0) >= 50
+            and death_batting.get("strike_rate", 0) >= 145
+        ):
             strengths.append(
                 PlayerInsight(
                     category="batting",
@@ -335,6 +418,7 @@ def generate_player_intelligence(
             )
 
     if bowling_legal_balls > 0:
+
         if bowling_economy <= 8:
             strengths.append(
                 PlayerInsight(
@@ -353,8 +437,8 @@ def generate_player_intelligence(
                     category="bowling",
                     title="Reliable wicket contribution",
                     detail=(
-                        f"Historical data contains {bowling_wickets} "
-                        "credited wickets."
+                        f"Historical data contains "
+                        f"{bowling_wickets} credited wickets."
                     ),
                 )
             )
@@ -371,7 +455,10 @@ def generate_player_intelligence(
                 )
             )
 
-        death_bowling = bowling_phase.get("death", {})
+        death_bowling = bowling_phase.get(
+            "death",
+            {},
+        )
 
         if (
             death_bowling.get("balls", 0) >= 50
@@ -393,6 +480,7 @@ def generate_player_intelligence(
     # ---------------------------------------------------------
 
     if batting_balls > 50:
+
         if batting_strike_rate < 110:
             weaknesses.append(
                 PlayerInsight(
@@ -400,8 +488,8 @@ def generate_player_intelligence(
                     title="Low scoring tempo",
                     detail=(
                         f"Strike rate of {batting_strike_rate:.1f} "
-                        "suggests the player may need to increase scoring "
-                        "speed in suitable situations."
+                        "suggests the player may need to increase "
+                        "scoring speed in suitable situations."
                     ),
                 )
             )
@@ -418,7 +506,10 @@ def generate_player_intelligence(
                 )
             )
 
-        death_batting = batting_phase.get("death", {})
+        death_batting = batting_phase.get(
+            "death",
+            {},
+        )
 
         if (
             death_batting.get("balls", 0) >= 30
@@ -436,6 +527,7 @@ def generate_player_intelligence(
             )
 
     if bowling_legal_balls > 50:
+
         if bowling_economy >= 10:
             weaknesses.append(
                 PlayerInsight(
@@ -448,7 +540,10 @@ def generate_player_intelligence(
                 )
             )
 
-        death_bowling = bowling_phase.get("death", {})
+        death_bowling = bowling_phase.get(
+            "death",
+            {},
+        )
 
         if (
             death_bowling.get("balls", 0) >= 30
@@ -470,49 +565,53 @@ def generate_player_intelligence(
     # ---------------------------------------------------------
 
     if batting_strike_rate > 0:
+
         if batting_strike_rate >= 140:
             recommendations.append(
                 PlayerInsight(
                     category="strategy",
                     title="Use as a tempo accelerator",
                     detail=(
-                        "Consider giving the player situations where "
-                        "rapid scoring can change the innings state."
+                        "Consider giving the player situations "
+                        "where rapid scoring can change the innings state."
                     ),
                 )
             )
+
         elif batting_strike_rate < 120:
             recommendations.append(
                 PlayerInsight(
                     category="strategy",
                     title="Prioritize strike rotation",
                     detail=(
-                        "Focus on reducing prolonged dot-ball sequences "
-                        "and increasing scoring opportunities."
+                        "Focus on reducing prolonged dot-ball "
+                        "sequences and increasing scoring opportunities."
                     ),
                 )
             )
 
     if bowling_legal_balls > 0:
+
         if bowling_economy <= 8:
             recommendations.append(
                 PlayerInsight(
                     category="strategy",
                     title="Use in control phases",
                     detail=(
-                        "The historical economy supports using the bowler "
-                        "when run suppression is important."
+                        "The historical economy supports using "
+                        "the bowler when run suppression is important."
                     ),
                 )
             )
+
         elif bowling_economy >= 10:
             recommendations.append(
                 PlayerInsight(
                     category="strategy",
                     title="Use matchups carefully",
                     detail=(
-                        "Consider selecting favorable batting matchups "
-                        "before assigning high-leverage overs."
+                        "Consider selecting favorable batting "
+                        "matchups before assigning high-leverage overs."
                     ),
                 )
             )
@@ -521,19 +620,24 @@ def generate_player_intelligence(
     # Overall assessment
     # ---------------------------------------------------------
 
-    role = str(player.role or "UNKNOWN").upper()
+    role = str(
+        player.role or "UNKNOWN"
+    ).upper()
 
     if role == "BATSMAN":
+
         if batting_strike_rate >= 140:
             overall_assessment = (
                 "Historically, this player profiles as an aggressive "
                 "T20 batter capable of maintaining a high scoring tempo."
             )
+
         elif batting_strike_rate >= 120:
             overall_assessment = (
-                "Historically, this player profiles as a balanced T20 "
-                "batter with a useful scoring rate."
+                "Historically, this player profiles as a balanced "
+                "T20 batter with a useful scoring rate."
             )
+
         else:
             overall_assessment = (
                 "Historically, this player profiles as a lower-tempo "
@@ -541,11 +645,13 @@ def generate_player_intelligence(
             )
 
     elif role == "BOWLER":
+
         if bowling_economy <= 8:
             overall_assessment = (
                 "Historically, this player profiles as an economical "
                 "bowler capable of creating run pressure."
             )
+
         else:
             overall_assessment = (
                 "Historically, this player provides a bowling option "
@@ -553,16 +659,22 @@ def generate_player_intelligence(
             )
 
     elif role == "ALL_ROUNDER":
-        if batting_strike_rate >= 125 and bowling_economy <= 9:
+
+        if (
+            batting_strike_rate >= 125
+            and bowling_economy <= 9
+        ):
             overall_assessment = (
-                "Historically, this player provides balanced value across "
-                "both batting and bowling phases."
+                "Historically, this player provides balanced value "
+                "across both batting and bowling phases."
             )
+
         elif batting_strike_rate >= 125:
             overall_assessment = (
                 "Historically, this player contributes more strongly "
                 "through batting while retaining bowling value."
             )
+
         else:
             overall_assessment = (
                 "Historically, this player contributes across multiple "
@@ -590,7 +702,7 @@ def generate_player_intelligence(
         f"{bowling_economy:.2f} economy."
     )
 
-    # Avoid returning an empty analysis for valid historical players.
+    # Avoid empty analysis for valid players.
     if not strengths:
         strengths.append(
             PlayerInsight(
@@ -626,3 +738,24 @@ def generate_player_intelligence(
         recommendations=recommendations,
         evidence_summary=evidence_summary,
     )
+
+
+def get_phase(over: int) -> str:
+    """Classify a T20 over into a cricket phase."""
+    if over < 6:
+        return "powerplay"
+
+    if over < 15:
+        return "middle"
+
+    return "death"
+
+
+def safe_ratio(
+    numerator: float,
+    denominator: float,
+) -> float:
+    if denominator == 0:
+        return 0.0
+
+    return numerator / denominator
