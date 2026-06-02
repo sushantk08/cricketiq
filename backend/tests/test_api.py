@@ -196,3 +196,45 @@ def test_player_intelligence(client):
     assert isinstance(data["weaknesses"], list)
     assert isinstance(data["recommendations"], list)
     assert data["evidence_summary"]
+
+def test_turning_points(client):
+    """Verify turning-point detection for Match 1."""
+    response = client.get("/api/matches/1/turning-points")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["match_id"] == 1
+    assert data["chasing_team"] == "Australia"
+    assert data["defending_team"] == "India"
+
+    assert isinstance(data["total_turning_points"], int)
+    assert data["total_turning_points"] >= 0
+
+    assert isinstance(data["turning_points"], list)
+
+    for point in data["turning_points"]:
+        assert point["display_over"]
+        assert point["batter_name"]
+        assert point["bowler_name"]
+        assert point["event_summary"]
+
+        assert 0.0 <= point["win_prob_before"] <= 100.0
+        assert 0.0 <= point["win_prob_after"] <= 100.0
+        assert -100.0 <= point["win_prob_delta"] <= 100.0
+
+        assert point["classification"] in [
+            "CRITICAL_TURNING_POINT",
+            "MAJOR_SWING",
+            "MODERATE_SHIFT",
+        ]
+
+    assert all(
+        not (
+            point["display_over"] == "19.6"
+            and point["event_summary"].startswith("Crucial dot ball")
+            and abs(point["win_prob_delta"]) > 50
+        )
+        for point in data["turning_points"]
+    )
