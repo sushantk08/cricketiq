@@ -19,31 +19,102 @@ DATASET_PATH = (
 )
 
 
-@lru_cache(maxsize=1)
-def load_historical_data() -> pd.DataFrame:
-    """Load the Cricsheet historical player delivery dataset once."""
+@lru_cache(maxsize=32)
+def load_player_historical_data(
+    player_name: str,
+) -> pd.DataFrame:
+    """
+    Load only the Cricsheet rows relevant to one player.
+
+    The CSV is processed in chunks so the complete historical
+    dataset does not need to stay in memory.
+    """
     if not DATASET_PATH.exists():
         raise FileNotFoundError(
             f"Historical player dataset not found: {DATASET_PATH}"
         )
 
-    df = pd.read_csv(DATASET_PATH)
+    required_columns = [
+        "match_id",
+        "match_date",
+        "innings_number",
+        "batting_team",
+        "batter",
+        "bowler",
+        "over",
+        "ball",
+        "runs_batter",
+        "runs_extras",
+        "runs_total",
+        "extra_type",
+        "is_legal",
+        "is_wicket",
+        "player_dismissed",
+        "dismissal_type",
+        "winner",
+        "teams",
+    ]
 
-    df["batter"] = df["batter"].fillna("").astype(str)
-    df["bowler"] = df["bowler"].fillna("").astype(str)
-    df["over"] = pd.to_numeric(df["over"], errors="coerce").fillna(0)
+    player_name_normalized = normalize_player_name(player_name)
+
+    matching_chunks = []
+
+    for chunk in pd.read_csv(
+        DATASET_PATH,
+        usecols=required_columns,
+        chunksize=50_000,
+    ):
+        chunk["batter"] = chunk["batter"].fillna("").astype(str)
+        chunk["bowler"] = chunk["bowler"].fillna("").astype(str)
+
+        batter_match = chunk["batter"].apply(
+            lambda name: player_name_matches(
+                name,
+                player_name_normalized,
+            )
+        )
+
+        bowler_match = chunk["bowler"].apply(
+            lambda name: player_name_matches(
+                name,
+                player_name_normalized,
+            )
+        )
+
+        matched = chunk[batter_match | bowler_match]
+
+        if not matched.empty:
+            matching_chunks.append(matched)
+
+    if not matching_chunks:
+        return pd.DataFrame(columns=required_columns)
+
+    df = pd.concat(
+        matching_chunks,
+        ignore_index=True,
+    )
+
+    df["over"] = pd.to_numeric(
+        df["over"],
+        errors="coerce",
+    ).fillna(0)
+
     df["runs_batter"] = pd.to_numeric(
-        df["runs_batter"], errors="coerce"
+        df["runs_batter"],
+        errors="coerce",
     ).fillna(0)
+
     df["runs_extras"] = pd.to_numeric(
-        df["runs_extras"], errors="coerce"
+        df["runs_extras"],
+        errors="coerce",
     ).fillna(0)
+
     df["runs_total"] = pd.to_numeric(
-        df["runs_total"], errors="coerce"
+        df["runs_total"],
+        errors="coerce",
     ).fillna(0)
 
     return df
-
 
 def normalize_player_name(name: str) -> str:
     """
@@ -124,9 +195,11 @@ def generate_player_intelligence(
     if not player:
         return None
 
-    df = load_historical_data()
+    
 
     player_name = player.name.strip()
+
+    df = load_player_historical_data(player_name)
 
     # Match the PostgreSQL player against Cricsheet's abbreviated names.
     batting_df = df[

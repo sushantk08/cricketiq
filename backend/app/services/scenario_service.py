@@ -4,6 +4,26 @@ from backend.app.schemas.scenario import (
     ScenarioSimulateResponse,
 )
 
+def _get_win_probability(
+    runs_required: int,
+    balls_remaining: int,
+    wickets_in_hand: int,
+) -> float:
+    
+    if runs_required <= 0:
+        return 100.0
+
+    if balls_remaining <= 0:
+        return 0.0
+
+    if wickets_in_hand <= 0:
+        return 0.0
+
+    return historical_win_predictor.predict(
+        runs_required=runs_required,
+        balls_remaining=balls_remaining,
+        wickets_in_hand=wickets_in_hand,
+    )
 
 def run_scenario_simulation(
     req: ScenarioSimulateRequest,
@@ -60,11 +80,13 @@ def run_scenario_simulation(
             else (0.0 if runs_required == 0 else 99.0)
         )
 
-        prob = historical_win_predictor.predict(
-           runs_required=runs_required,
-           balls_remaining=balls_remaining,
-           wickets_in_hand=wickets_in_hand,
+        prob = _get_win_probability(
+            runs_required=runs_required,
+            balls_remaining=balls_remaining,
+            wickets_in_hand=wickets_in_hand,
         )
+
+        win_prob_bat = round(prob, 2)
 
         win_prob_bat = round(prob, 2)
         win_prob_bowl = round(100.0 - prob, 2)
