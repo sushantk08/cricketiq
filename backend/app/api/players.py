@@ -2,6 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+
 from backend.app.database.session import get_db
 from backend.app.models.cricket import Player
 from backend.app.schemas.player import PlayerBrief, PlayerStatsResponse
@@ -10,6 +11,8 @@ from backend.app.schemas.player_intelligence import PlayerIntelligenceResponse
 from backend.app.services.player_intelligence_service import (
     generate_player_intelligence,
 )
+from backend.app.schemas.matchup import MatchupResponse
+from backend.app.services.matchup_service import generate_matchup_intelligence
 
 router = APIRouter(prefix="/api/players", tags=["Players"])
 
@@ -64,3 +67,26 @@ def get_player_intelligence(
         )
 
     return intelligence
+
+@router.get(
+    "/{batter_id}/matchup/{bowler_id}",
+    response_model=MatchupResponse,
+)
+def get_player_matchup(
+    batter_id: int,
+    bowler_id: int,
+    db: Session = Depends(get_db),
+):
+    matchup = generate_matchup_intelligence(
+        db,
+        batter_id,
+        bowler_id,
+    )
+
+    if not matchup:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Batter or bowler not found",
+        )
+
+    return matchup

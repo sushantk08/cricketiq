@@ -238,3 +238,35 @@ def test_turning_points(client):
         )
         for point in data["turning_points"]
     )
+
+def test_player_matchup(client):
+    """Verify historical batter-vs-bowler matchup intelligence."""
+    response = client.get("/api/players/14/matchup/9")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["batter_id"] == 14
+    assert data["batter_name"] == "Mitchell Marsh"
+
+    assert data["bowler_id"] == 9
+    assert data["bowler_name"] == "Jasprit Bumrah"
+
+    assert data["matches"] >= 0
+    assert data["balls"] >= 0
+    assert data["runs"] >= 0
+    assert data["strike_rate"] >= 0
+    assert 0 <= data["dot_ball_percentage"] <= 100
+
+    assert data["fours"] >= 0
+    assert data["sixes"] >= 0
+    assert data["dismissals"] >= 0
+
+    assert "powerplay" in data["phase_stats"]
+    assert "middle" in data["phase_stats"]
+    assert "death" in data["phase_stats"]
+
+    assert data["assessment"]
+    assert isinstance(data["insights"], list)
+    assert data["uncertainty_note"]
