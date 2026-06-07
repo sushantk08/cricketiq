@@ -1,39 +1,64 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Calendar, MapPin, Radio, ArrowRight, RefreshCw } from 'lucide-react'
+import {
+  Calendar,
+  MapPin,
+  Radio,
+  ArrowRight,
+  RefreshCw,
+  TrendingUp,
+} from 'lucide-react'
 import PageWrapper from '../components/PageWrapper'
-import { fetchMatches, fetchLiveScores } from '../services/api'
+import {
+  fetchMatches,
+  fetchLiveScores,
+  fetchLiveIntelligence,
+} from '../services/api'
 
 export default function MatchesPage() {
   const [matches, setMatches] = useState([])
   const [liveScores, setLiveScores] = useState([])
+  const [liveIntelligence, setLiveIntelligence] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshingLive, setRefreshingLive] = useState(false)
 
   const loadData = () => {
-    Promise.all([fetchMatches(), fetchLiveScores()])
-      .then(([dbMatches, liveData]) => {
-        setMatches(dbMatches)
-        setLiveScores(liveData)
-        setLoading(false)
-        setRefreshingLive(false)
-      })
-      .catch(err => {
-        console.error(err)
-        setLoading(false)
-        setRefreshingLive(false)
-      })
-  }
+  Promise.all([
+    fetchMatches(),
+    fetchLiveScores(),
+    fetchLiveIntelligence(),
+  ])
+    .then(([dbMatches, liveData, intelligenceData]) => {
+      setMatches(dbMatches)
+      setLiveScores(liveData)
+      setLiveIntelligence(intelligenceData)
+      setLoading(false)
+      setRefreshingLive(false)
+    })
+    .catch(err => {
+      console.error(err)
+      setLoading(false)
+      setRefreshingLive(false)
+    })
+}
 
     useEffect(() => {
     loadData()
 
     const interval = setInterval(() => {
-      fetchLiveScores()
-        .then(setLiveScores)
-        .catch(err => console.error('Live score refresh failed:', err))
-    }, 30000)
+  Promise.all([
+    fetchLiveScores(),
+    fetchLiveIntelligence(),
+  ])
+    .then(([liveData, intelligenceData]) => {
+      setLiveScores(liveData)
+      setLiveIntelligence(intelligenceData)
+    })
+    .catch(err =>
+      console.error('Live intelligence refresh failed:', err)
+    )
+}, 30000)
 
     return () => clearInterval(interval)
   }, [])
@@ -125,6 +150,385 @@ export default function MatchesPage() {
           </div>
         )}
       </div>
+
+{/* LIVE INTELLIGENCE SECTION */}
+<div style={{ marginBottom: '40px' }}>
+  <div
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      marginBottom: '16px',
+    }}
+  >
+    <TrendingUp
+      size={18}
+      color="var(--accent-cyan)"
+    />
+
+    <h2
+      style={{
+        fontSize: '1.25rem',
+        fontWeight: 700,
+      }}
+    >
+      Live Match Intelligence
+    </h2>
+  </div>
+
+  {liveIntelligence.length === 0 ? (
+    <div
+      className="glass-card"
+      style={{
+        padding: '18px',
+        color: 'var(--text-muted)',
+        fontSize: '0.9rem',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '6px',
+          color: 'var(--accent-cyan)',
+          fontWeight: 700,
+        }}
+      >
+        <Radio size={15} />
+        No active intelligence
+      </div>
+
+      Live intelligence will appear automatically when a match is
+      currently in progress.
+    </div>
+  ) : (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns:
+          'repeat(auto-fill, minmax(340px, 1fr))',
+        gap: '18px',
+      }}
+    >
+      {liveIntelligence.map((intel, idx) => (
+        <motion.div
+          key={intel.external_id || idx}
+          initial={{
+            opacity: 0,
+            y: 12,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            delay: idx * 0.05,
+          }}
+          className="glass-card"
+          style={{
+            border:
+              '1px solid var(--border-subtle)',
+          }}
+        >
+          {/* Match Header */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '12px',
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                color: 'var(--accent-red)',
+              }}
+            >
+              <span className="animate-pulse">●</span>
+              LIVE INTELLIGENCE
+            </span>
+
+            <span
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: 'var(--accent-cyan)',
+              }}
+            >
+              {intel.match_type}
+            </span>
+          </div>
+
+          <h3
+            style={{
+              fontSize: '1rem',
+              fontWeight: 700,
+              marginBottom: '10px',
+            }}
+          >
+            {intel.title}
+          </h3>
+
+          {/* Score */}
+          <div
+            style={{
+              padding: '12px',
+              borderRadius: '8px',
+              backgroundColor: 'var(--bg-main)',
+              border:
+                '1px solid var(--border-subtle)',
+              marginBottom: '12px',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '1rem',
+                fontWeight: 800,
+                marginBottom: '4px',
+              }}
+            >
+              {intel.formatted_score}
+            </div>
+
+            <div
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-muted)',
+              }}
+            >
+              {intel.venue_name}
+            </div>
+          </div>
+
+          {/* Current State */}
+          {intel.current_score !== null && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns:
+                  'repeat(3, 1fr)',
+                gap: '8px',
+                marginBottom: '14px',
+              }}
+            >
+              <div
+                style={{
+                  padding: '9px',
+                  borderRadius: '7px',
+                  backgroundColor:
+                    'rgba(255,255,255,0.03)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '0.68rem',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  Score
+                </div>
+
+                <div
+                  style={{
+                    fontWeight: 800,
+                    marginTop: '2px',
+                  }}
+                >
+                  {intel.current_score}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: '9px',
+                  borderRadius: '7px',
+                  backgroundColor:
+                    'rgba(255,255,255,0.03)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '0.68rem',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  Wickets
+                </div>
+
+                <div
+                  style={{
+                    fontWeight: 800,
+                    marginTop: '2px',
+                  }}
+                >
+                  {intel.current_wickets}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: '9px',
+                  borderRadius: '7px',
+                  backgroundColor:
+                    'rgba(255,255,255,0.03)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '0.68rem',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  Overs
+                </div>
+
+                <div
+                  style={{
+                    fontWeight: 800,
+                    marginTop: '2px',
+                  }}
+                >
+                  {intel.current_overs}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Decision Summary */}
+          <div
+            style={{
+              padding: '12px',
+              borderRadius: '8px',
+              backgroundColor: 'var(--bg-main)',
+              border:
+                '1px solid var(--border-subtle)',
+              marginBottom: '12px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--accent-cyan)',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                marginBottom: '5px',
+              }}
+            >
+              <TrendingUp size={14} />
+              Decision Summary
+            </div>
+
+            <p
+              style={{
+                margin: 0,
+                fontSize: '0.78rem',
+                lineHeight: 1.5,
+                color: 'var(--text-main)',
+              }}
+            >
+              {intel.decision_summary}
+            </p>
+          </div>
+
+          {/* Insights */}
+          {intel.insights?.length > 0 && (
+            <div>
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--accent-orange)',
+                  marginBottom: '8px',
+                }}
+              >
+                Live Signals
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '7px',
+                }}
+              >
+                {intel.insights.map(
+                  (insight, insightIndex) => (
+                    <div
+                      key={`${insight.category}-${insightIndex}`}
+                      style={{
+                        padding: '9px 10px',
+                        borderRadius: '7px',
+                        backgroundColor:
+                          'rgba(255,255,255,0.03)',
+                        border:
+                          '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '0.68rem',
+                          textTransform:
+                            'uppercase',
+                          color:
+                            'var(--text-muted)',
+                          fontWeight: 700,
+                          marginBottom: '2px',
+                        }}
+                      >
+                        {insight.category}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          marginBottom: '2px',
+                        }}
+                      >
+                        {insight.title}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          color:
+                            'var(--text-muted)',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {insight.detail}
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Provider Status */}
+          {intel.status_note && (
+            <div
+              style={{
+                marginTop: '12px',
+                fontSize: '0.72rem',
+                color: 'var(--text-muted)',
+              }}
+            >
+              Provider status: {intel.status_note}
+            </div>
+          )}
+        </motion.div>
+      ))}
+    </div>
+  )}
+</div>
 
       {/* STORED TOURNAMENT MATCHES & ANALYTICAL FIXTURES */}
       <div>
