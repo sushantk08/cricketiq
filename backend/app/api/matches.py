@@ -9,6 +9,10 @@ from backend.app.schemas.cricket import (
     MatchBrief,
     MatchScorecardResponse,
 )
+from backend.app.schemas.live_intelligence import LiveMatchIntelligence
+from backend.app.services.live_intelligence_service import (
+    build_live_match_intelligence,
+)
 from backend.app.services.match_service import compute_match_scorecard
 from backend.app.integrations.cricket_api import cricket_adapter
 
@@ -23,6 +27,20 @@ def get_matches(db: Session = Depends(get_db)):
 def get_live_scores_feed():
   """Fetches real-time live match scores parsed directly from CricAPI currentMatches."""
   return cricket_adapter.fetch_live_fixtures()
+
+@router.get(
+    "/live/intelligence",
+    response_model=List[LiveMatchIntelligence],
+)
+def get_live_intelligence():
+    live_matches = cricket_adapter.fetch_live_fixtures()
+
+    return [
+        build_live_match_intelligence(match)
+        for match in live_matches
+        if match.get("match_started", False)
+        and not match.get("match_ended", False)
+    ]
 
 @router.get("/{match_id}", response_model=MatchBrief)
 def get_match_by_id(match_id: int, db: Session = Depends(get_db)):

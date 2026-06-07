@@ -270,3 +270,64 @@ def test_player_matchup(client):
     assert data["assessment"]
     assert isinstance(data["insights"], list)
     assert data["uncertainty_note"]
+
+def test_live_intelligence(client, monkeypatch):
+    """Verify live intelligence normalization without relying on a live match."""
+    from backend.app.api import matches as matches_api
+
+    sample_match = {
+        "external_id": "test-live-1",
+        "title": "Test Team A vs Test Team B",
+        "match_type": "T20",
+        "status": "LIVE",
+        "match_started": True,
+        "match_ended": False,
+        "team1_name": "Test Team A",
+        "team1_short": "TST",
+        "team2_name": "Test Team B",
+        "team2_short": "TMB",
+        "venue_name": "Test Stadium",
+        "scores": [
+            {
+                "inning": "Test Team A Inning 1",
+                "runs": 150,
+                "wickets": 5,
+                "overs": 18.0,
+            }
+        ],
+        "formatted_score": "TST 150/5 (18.0 ov)",
+        "status_note": "Live match",
+    }
+
+    monkeypatch.setattr(
+        matches_api.cricket_adapter,
+        "fetch_live_fixtures",
+        lambda: [sample_match],
+    )
+
+    response = client.get("/api/matches/live/intelligence")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 1
+
+    match = data[0]
+
+    assert match["external_id"] == "test-live-1"
+    assert match["title"] == "Test Team A vs Test Team B"
+    assert match["status"] == "LIVE"
+
+    assert match["team1_name"] == "Test Team A"
+    assert match["team2_name"] == "Test Team B"
+
+    assert match["current_score"] == 150
+    assert match["current_wickets"] == 5
+    assert match["current_overs"] == 18.0
+
+    assert isinstance(match["insights"], list)
+    assert len(match["insights"]) > 0
+
+    assert match["decision_summary"]
+    assert match["uncertainty_note"]
