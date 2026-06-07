@@ -13,6 +13,12 @@ export async function fetchLiveScores() {
   return res.json()
 }
 
+export async function fetchLiveIntelligence() {
+  const res = await fetch(`${API_BASE}/matches/live/intelligence`)
+  if (!res.ok) throw new Error('Failed to fetch live intelligence')
+  return res.json()
+}
+
 export async function fetchMatchById(id) {
   const res = await fetch(`${API_BASE}/matches/${id}`)
   if (!res.ok) throw new Error('Failed to fetch match')
