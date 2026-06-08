@@ -55,6 +55,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/cricketiq
         run: |
+          cd backend
           alembic upgrade head
 
       - name: Seed Database
