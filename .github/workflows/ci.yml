@@ -40,7 +40,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
           python-version: "3.14"
@@ -50,6 +50,37 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
+
+      - name: Prepare Historical Cricket Data
+        run: |
+          mkdir -p "$HOME/Downloads"
+
+          curl -L "https://cricsheet.org/downloads/t20s.zip" \
+            -o "$HOME/Downloads/t20s.zip"
+
+          python - <<'PY'
+          from pathlib import Path
+
+          from backend.app.data.cricsheet_importer import (
+              write_training_dataset,
+              write_player_historical_dataset,
+          )
+
+          output_dir = Path("backend/data/historical")
+          output_dir.mkdir(parents=True, exist_ok=True)
+
+          win_probability_path = output_dir / "win_probability.csv"
+          player_history_path = output_dir / "player_delivery_history.csv"
+
+          training_rows = write_training_dataset(win_probability_path)
+          player_rows = write_player_historical_dataset(player_history_path)
+
+          print(
+              f"Historical datasets generated successfully: "
+              f"{training_rows} win-probability rows, "
+              f"{player_rows} player-history rows."
+          )
+          PY
 
       - name: Run Database Migrations
         env:
@@ -70,6 +101,7 @@ jobs:
           JWT_SECRET_KEY: ci-test-secret-key
           LLM_MODEL: openai/gpt-oss-20b
           MONGODB_URL: mongodb://localhost:27017
+          OPENBLAS_NUM_THREADS: "1"
         run: |
           python -m pytest backend/tests -v
 
