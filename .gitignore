@@ -35,3 +35,10 @@ uploads/
 # Local historical cricket data
 backend/data/historical/
 t20s.zip
+
+# Keep the small trained win-probability model in version control
+!backend/data/historical/
+!backend/data/historical/win_probability_model.joblib
+
+backend/data/historical/player_delivery_history.csv
+backend/data/historical/win_probability.csv
