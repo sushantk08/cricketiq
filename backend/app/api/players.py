@@ -2,7 +2,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-
+from backend.app.schemas.comparison import PlayerComparisonResponse
+from backend.app.services.comparison_service import generate_player_comparison
 from backend.app.database.session import get_db
 from backend.app.models.cricket import Player
 from backend.app.schemas.player import PlayerBrief, PlayerStatsResponse
@@ -30,6 +31,29 @@ def list_players(
         query = query.filter(Player.role == role.upper())
     return query.order_by(Player.name).all()
 
+
+@router.get(
+    "/compare",
+    response_model=PlayerComparisonResponse,
+)
+def compare_players(
+    player1_id: int = Query(..., description="First player ID"),
+    player2_id: int = Query(..., description="Second player ID"),
+    db: Session = Depends(get_db),
+):
+    comparison = generate_player_comparison(
+        db,
+        player1_id,
+        player2_id,
+    )
+
+    if not comparison:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Both players must exist and be different players",
+        )
+
+    return comparison
 
 @router.get("/{player_id}", response_model=PlayerBrief)
 def get_player(player_id: int, db: Session = Depends(get_db)):

@@ -76,7 +76,22 @@ function PlayersPage() {
           Explore player profiles, roles, and cricket attributes.
         </p>
       </div>
-
+      <Link
+  to="/players/compare"
+  style={{
+    display: "inline-block",
+    marginTop: "16px",
+    padding: "11px 18px",
+    borderRadius: "8px",
+    background: "var(--accent-cyan)",
+    color: "#061018",
+    fontWeight: 800,
+    fontSize: "14px",
+    textDecoration: "none",
+  }}
+>
+  Compare Players
+</Link>
       <div
         className="glass-card"
         style={{

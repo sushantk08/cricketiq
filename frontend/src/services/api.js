@@ -83,6 +83,16 @@ export async function fetchPlayerIntelligence(playerId) {
   return res.json()
 }
 
+export async function fetchPlayerComparison(player1Id, player2Id) {
+  const res = await fetch(
+    `${API_BASE}/players/compare?player1_id=${player1Id}&player2_id=${player2Id}`
+  )
+
+  if (!res.ok) throw new Error('Failed to fetch player comparison')
+
+  return res.json()
+}
+
 export async function fetchTeams() {
   const res = await fetch(`${API_BASE}/teams`)
   if (!res.ok) throw new Error('Failed to fetch teams')

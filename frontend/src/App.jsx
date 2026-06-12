@@ -13,7 +13,7 @@ import PlayersPage from './pages/PlayersPage'
 import PlayerDetailPage from './pages/PlayerDetailPage'
 import TeamsPage from './pages/TeamsPage'
 import TeamDetailPage from './pages/TeamDetailPage'
-
+import PlayerComparisonPage from './pages/PlayerComparisonPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 
@@ -65,6 +65,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+  path="/players/compare"
+  element={
+    <ProtectedRoute>
+      <PlayerComparisonPage />
+    </ProtectedRoute>
+  }
+/>
 
           <Route
             path="/teams"
