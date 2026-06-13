@@ -19,6 +19,7 @@ export default function StrategyPage() {
   const [matchup, setMatchup] = useState(null)
   const [bowlingStrategy, setBowlingStrategy] = useState(null)
   const [battingStrategy, setBattingStrategy] = useState(null)
+  const [tacticalSummary, setTacticalSummary] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -105,6 +106,40 @@ export default function StrategyPage() {
     }
   }
 
+    const buildTacticalSummary = () => {
+    const insights = []
+
+    if (matchup) {
+      insights.push(
+        `Matchup: ${matchup.advantage}. ${matchup.runs_scored} runs from ${matchup.balls_faced} balls at a strike rate of ${matchup.strike_rate}.`
+      )
+    }
+
+    if (bowlingStrategy?.recommendations?.length) {
+      const topBowler = bowlingStrategy.recommendations[0]
+
+      insights.push(
+        `Bowling: ${topBowler.bowler_name} is the top historical recommendation for the ${phase} phase with a score of ${topBowler.recommendation_score}.`
+      )
+    }
+
+    if (battingStrategy) {
+      insights.push(
+        `Batting: ${battingStrategy.recommended_approach}. Risk level is ${battingStrategy.risk_level}.`
+      )
+    }
+
+    if (!insights.length) {
+      return ''
+    }
+
+    return insights.join(' ')
+  }
+
+  useEffect(() => {
+    setTacticalSummary(buildTacticalSummary())
+  }, [matchup, bowlingStrategy, battingStrategy, phase])
+
   return (
     <PageWrapper>
       <div style={{ marginBottom: '28px' }}>
@@ -115,6 +150,42 @@ export default function StrategyPage() {
           Use player matchups and historical performance to evaluate tactical options.
         </p>
       </div>
+      
+            {tacticalSummary && (
+        <div
+          className="glass-card"
+          style={{
+            marginBottom: '20px',
+            borderLeft: '4px solid var(--accent-blue)',
+          }}
+        >
+          <h2 style={{ marginBottom: '10px' }}>
+            Tactical Decision Summary
+          </h2>
+
+          <p
+            style={{
+              margin: 0,
+              lineHeight: 1.7,
+              color: 'var(--text-muted)',
+            }}
+          >
+            {tacticalSummary}
+          </p>
+
+          <p
+            style={{
+              marginTop: '12px',
+              marginBottom: 0,
+              fontSize: '0.8rem',
+              color: 'var(--text-muted)',
+            }}
+          >
+            Based on available historical evidence. This is decision support,
+            not a guarantee of future match outcomes.
+          </p>
+        </div>
+      )}
 
       {error && (
         <div
