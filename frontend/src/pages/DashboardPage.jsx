@@ -137,6 +137,87 @@ function DashboardPage() {
         </p>
       ) : (
         <>
+                    <div
+            className="glass-card"
+            style={{
+              marginBottom: "28px",
+              padding: "26px",
+            }}
+          >
+            <p
+              style={{
+                color: "var(--accent-cyan)",
+                fontSize: "12px",
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                marginBottom: "6px",
+              }}
+            >
+              QUICK INTELLIGENCE
+            </p>
+
+            <h2
+              style={{
+                fontSize: "23px",
+                marginBottom: "8px",
+              }}
+            >
+              Start an Analysis
+            </h2>
+
+            <p
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "13px",
+                lineHeight: 1.6,
+                marginBottom: "20px",
+              }}
+            >
+              Jump directly into CricketIQ's decision-support tools.
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: "12px",
+              }}
+            >
+              <Link
+                to="/strategy"
+                className="btn-primary"
+                style={{ textAlign: "center" }}
+              >
+                Strategy Center
+              </Link>
+
+              <Link
+                to="/scenarios"
+                className="btn-primary"
+                style={{ textAlign: "center" }}
+              >
+                Scenario Simulator
+              </Link>
+
+              <Link
+                to="/replay"
+                className="btn-primary"
+                style={{ textAlign: "center" }}
+              >
+                Decision Replay
+              </Link>
+
+              <Link
+                to="/ai-analyst"
+                className="btn-primary"
+                style={{ textAlign: "center" }}
+              >
+                AI Analyst
+              </Link>
+            </div>
+          </div> 
+                 
           <div
             style={{
               display: "grid",
