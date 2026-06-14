@@ -29,6 +29,7 @@ export default function MatchDetailPage() {
   const [analytics, setAnalytics] = useState(null)
   const [winProbability, setWinProbability] = useState(null)
   const [activeTab, setActiveTab] = useState('scorecard')
+  const [showIntelligence, setShowIntelligence] = useState(true)
   const [activeInnings, setActiveInnings] = useState(0)
 
     useEffect(() => {
@@ -72,6 +73,27 @@ export default function MatchDetailPage() {
     runsRequired: point.runs_required,
     ballsRemaining: point.balls_remaining,
   })) || []
+
+
+    const latestProbability =
+    winProbability?.curve?.length
+      ? winProbability.curve[winProbability.curve.length - 1]
+      : null
+
+  const topTurningPoint =
+    turningPoints?.turning_points?.length
+      ? turningPoints.turning_points[0]
+      : null
+
+  const totalRuns = analytics?.innings?.reduce(
+    (total, innings) => total + (innings.runs || 0),
+    0
+  ) || 0
+
+  const totalWickets = analytics?.innings?.reduce(
+    (total, innings) => total + (innings.wickets || 0),
+    0
+  ) || 0
 
   return (
     <PageWrapper>
@@ -157,6 +179,197 @@ export default function MatchDetailPage() {
           </p>
         </div>
       </div>
+
+            {showIntelligence && (
+        <div
+          className="glass-card"
+          style={{
+            marginBottom: '24px',
+            padding: '24px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '16px',
+              marginBottom: '18px',
+            }}
+          >
+            <div>
+              <p
+                style={{
+                  color: 'var(--accent-cyan)',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  marginBottom: '5px',
+                }}
+              >
+                MATCH INTELLIGENCE
+              </p>
+
+              <h2 style={{ fontSize: '1.35rem' }}>
+                Analyst Snapshot
+              </h2>
+            </div>
+
+            <button
+              onClick={() => setShowIntelligence(false)}
+              style={{
+                background: 'none',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-muted)',
+                borderRadius: '8px',
+                padding: '6px 10px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+              }}
+            >
+              Hide
+            </button>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(160px, 1fr))',
+              gap: '12px',
+            }}
+          >
+            <div
+              style={{
+                padding: '16px',
+                background: 'var(--bg-main)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '10px',
+              }}
+            >
+              <span
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.75rem',
+                }}
+              >
+                TOTAL RUNS
+              </span>
+              <h3 style={{ marginTop: '6px', fontSize: '1.5rem' }}>
+                {totalRuns}
+              </h3>
+            </div>
+
+            <div
+              style={{
+                padding: '16px',
+                background: 'var(--bg-main)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '10px',
+              }}
+            >
+              <span
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.75rem',
+                }}
+              >
+                WICKETS
+              </span>
+              <h3 style={{ marginTop: '6px', fontSize: '1.5rem' }}>
+                {totalWickets}
+              </h3>
+            </div>
+
+            <div
+              style={{
+                padding: '16px',
+                background: 'var(--bg-main)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '10px',
+              }}
+            >
+              <span
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.75rem',
+                }}
+              >
+                LATEST CHASING PROBABILITY
+              </span>
+              <h3
+                style={{
+                  marginTop: '6px',
+                  fontSize: '1.5rem',
+                  color: 'var(--accent-green)',
+                }}
+              >
+                {latestProbability
+                  ? `${latestProbability.batting_win_prob}%`
+                  : '—'}
+              </h3>
+            </div>
+
+            <div
+              style={{
+                padding: '16px',
+                background: 'var(--bg-main)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '10px',
+              }}
+            >
+                <span
+                  style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  TOP TURNING POINT
+                </span>
+
+                <h3
+                  style={{
+                    marginTop: '6px',
+                    fontSize: '1.05rem',
+                  }}
+                >
+                  {topTurningPoint
+                    ? `Over ${topTurningPoint.display_over}`
+                    : '—'}
+                </h3>
+            </div>
+          </div>
+
+          {topTurningPoint && (
+            <div
+              style={{
+                marginTop: '14px',
+                padding: '14px 16px',
+                borderRadius: '10px',
+                background: 'var(--bg-main)',
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
+              <strong>Key signal:</strong>{' '}
+              {topTurningPoint.event_summary}
+            </div>
+          )}
+
+          <p
+            style={{
+              marginTop: '14px',
+              marginBottom: 0,
+              color: 'var(--text-muted)',
+              fontSize: '0.75rem',
+              lineHeight: 1.5,
+            }}
+          >
+            Intelligence signals are derived from available match data and
+            historical models. They support analysis and should not be treated
+            as guaranteed outcomes.
+          </p>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px', marginBottom: '24px' }}>
