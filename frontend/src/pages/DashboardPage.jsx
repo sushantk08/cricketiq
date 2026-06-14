@@ -56,6 +56,8 @@ function DashboardPage() {
     (match) => match.status === "UPCOMING"
   );
 
+  const latestMatch = matches.length > 0 ? matches[0] : null;
+
   const statCard = (label, value, description) => (
     <div className="glass-card">
       <p
@@ -137,6 +139,69 @@ function DashboardPage() {
         </p>
       ) : (
         <>
+                    {latestMatch && (
+            <div
+              className="glass-card"
+              style={{
+                marginBottom: "28px",
+                padding: "26px",
+              }}
+            >
+              <p
+                style={{
+                  color: "var(--accent-cyan)",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  marginBottom: "6px",
+                }}
+              >
+                LATEST MATCH
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "20px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <h2
+                    style={{
+                      fontSize: "23px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    {latestMatch.title}
+                  </h2>
+
+                  <p
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "13px",
+                    }}
+                  >
+                    {latestMatch.match_type} · {latestMatch.status}
+                  </p>
+                </div>
+
+                <Link
+                  to={`/matches/${latestMatch.id}`}
+                  className="btn-primary"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                  }}
+                >
+                  Open Match Intelligence →
+                </Link>
+              </div>
+            </div>
+          )}
+
                     <div
             className="glass-card"
             style={{
