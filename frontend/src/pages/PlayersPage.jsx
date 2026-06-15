@@ -76,22 +76,25 @@ function PlayersPage() {
           Explore player profiles, roles, and cricket attributes.
         </p>
       </div>
+
       <Link
-  to="/players/compare"
-  style={{
-    display: "inline-block",
-    marginTop: "16px",
-    padding: "11px 18px",
-    borderRadius: "8px",
-    background: "var(--accent-cyan)",
-    color: "#061018",
-    fontWeight: 800,
-    fontSize: "14px",
-    textDecoration: "none",
-  }}
->
-  Compare Players
-</Link>
+        to="/players/compare"
+        style={{
+          display: "inline-block",
+          marginTop: "16px",
+          marginBottom: "24px",
+          padding: "11px 18px",
+          borderRadius: "8px",
+          background: "var(--accent-cyan)",
+          color: "#061018",
+          fontWeight: 800,
+          fontSize: "14px",
+          textDecoration: "none",
+        }}
+      >
+        Compare Players
+      </Link>
+
       <div
         className="glass-card"
         style={{
@@ -133,6 +136,7 @@ function PlayersPage() {
           }}
         >
           <option value="ALL">All Roles</option>
+
           {roles.map((role) => (
             <option key={role} value={role}>
               {role.replace("_", " ")}
@@ -183,7 +187,9 @@ function PlayersPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: "var(--text-muted)" }}>Loading players...</p>
+        <p style={{ color: "var(--text-muted)" }}>
+          Loading players...
+        </p>
       ) : filteredPlayers.length === 0 ? (
         <div
           className="glass-card"
@@ -193,6 +199,7 @@ function PlayersPage() {
           }}
         >
           <h3 style={{ marginBottom: "8px" }}>No players found</h3>
+
           <p style={{ color: "var(--text-muted)" }}>
             Try changing your search or filters.
           </p>
@@ -207,12 +214,10 @@ function PlayersPage() {
           }}
         >
           {filteredPlayers.map((player) => (
-            <Link
+            <div
               key={player.id}
-              to={`/players/${player.id}`}
               className="glass-card"
               style={{
-                display: "block",
                 padding: "22px",
                 transition: "transform 0.2s ease",
               }}
@@ -250,7 +255,8 @@ function PlayersPage() {
                 <span
                   style={{
                     background: "rgba(0, 210, 255, 0.08)",
-                    border: "1px solid rgba(0, 210, 255, 0.2)",
+                    border:
+                      "1px solid rgba(0, 210, 255, 0.2)",
                     borderRadius: "999px",
                     padding: "5px 9px",
                     color: "var(--accent-cyan)",
@@ -264,7 +270,8 @@ function PlayersPage() {
 
               <div
                 style={{
-                  borderTop: "1px solid var(--border-subtle)",
+                  borderTop:
+                    "1px solid var(--border-subtle)",
                   paddingTop: "14px",
                 }}
               >
@@ -275,7 +282,11 @@ function PlayersPage() {
                     marginBottom: "8px",
                   }}
                 >
-                  <strong style={{ color: "var(--text-main)" }}>
+                  <strong
+                    style={{
+                      color: "var(--text-main)",
+                    }}
+                  >
                     Batting
                   </strong>{" "}
                   {player.batting_style || "Not available"}
@@ -287,13 +298,51 @@ function PlayersPage() {
                     fontSize: "13px",
                   }}
                 >
-                  <strong style={{ color: "var(--text-main)" }}>
+                  <strong
+                    style={{
+                      color: "var(--text-main)",
+                    }}
+                  >
                     Bowling
                   </strong>{" "}
                   {player.bowling_style || "Not available"}
                 </p>
               </div>
-            </Link>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  marginTop: "16px",
+                }}
+              >
+                <Link
+                  to={`/players/${player.id}`}
+                  className="btn-primary"
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    fontSize: "12px",
+                    padding: "9px 10px",
+                  }}
+                >
+                  View Profile
+                </Link>
+
+                <Link
+                  to="/players/compare"
+                  className="btn-primary"
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    fontSize: "12px",
+                    padding: "9px 10px",
+                  }}
+                >
+                  Compare
+                </Link>
+              </div>
+            </div>
           ))}
         </div>
       )}
