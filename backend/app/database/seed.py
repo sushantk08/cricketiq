@@ -1,6 +1,10 @@
 import random
 from sqlalchemy import text
+
 from backend.app.database.session import SessionLocal
+from backend.app.core.security import hash_password
+from backend.app.data.cricsheet_importer import import_cricsheet_catalog
+
 from backend.app.models.cricket import (
     Delivery,
     Innings,
@@ -10,24 +14,35 @@ from backend.app.models.cricket import (
     Venue,
 )
 
+from backend.app.models.user import (
+    User,
+    UserRole,
+    VerificationStatus,
+)
+
 
 def seed_cricket_data():
     db = SessionLocal()
+
     try:
         print("Resetting database and re-seeding with ID sequences at 1...")
+
         db.execute(
             text(
                 "TRUNCATE TABLE deliveries, innings, matches, players, teams,"
                 " venues RESTART IDENTITY CASCADE;"
             )
         )
+
         db.commit()
 
         # 1. Create Teams
         ind = Team(name="India", short_name="IND")
         aus = Team(name="Australia", short_name="AUS")
+
         db.add_all([ind, aus])
         db.commit()
+
         db.refresh(ind)
         db.refresh(aus)
 
@@ -193,10 +208,39 @@ def seed_cricket_data():
         db.add_all(ind_players + aus_players)
         db.commit()
 
+        # 2b. Import the wider Cricsheet player/team catalog
+        imported_teams, imported_players = import_cricsheet_catalog(db)
+
+        print(
+            f"Cricsheet catalog imported: "
+            f"{imported_teams} teams available, "
+            f"{imported_players} new players added."
+        )
+
+        # 2c. Create default admin account
+        admin = User(
+            email="admin@cricketiq.com",
+            hashed_password=hash_password("Admin@123"),
+            full_name="CricketIQ Admin",
+            role=UserRole.ADMIN,
+            verification_status=VerificationStatus.APPROVED.value,
+        )
+
+        db.add(admin)
+        db.commit()
+
+        print("Default admin account created: admin@cricketiq.com")
+
         # 3. Create Venue
-        venue = Venue(name="Wankhede Stadium", city="Mumbai", country="India")
+        venue = Venue(
+            name="Wankhede Stadium",
+            city="Mumbai",
+            country="India",
+        )
+
         db.add(venue)
         db.commit()
+
         db.refresh(venue)
 
         # 4. Create Match
@@ -211,8 +255,10 @@ def seed_cricket_data():
             toss_decision="bat",
             winner_id=ind.id,
         )
+
         db.add(match)
         db.commit()
+
         db.refresh(match)
 
         # 5. Innings and Delivery Generator
@@ -233,13 +279,18 @@ def seed_cricket_data():
                 total_wickets=0,
                 total_overs=20.0,
             )
+
             db.add(innings)
             db.commit()
+
             db.refresh(innings)
 
             bowlers = [
-                p for p in bowling_squad if p.role in ["BOWLER", "ALL_ROUNDER"]
+                p
+                for p in bowling_squad
+                if p.role in ["BOWLER", "ALL_ROUNDER"]
             ]
+
             striker_idx = 0
             non_striker_idx = 1
             next_batter_idx = 2
@@ -252,7 +303,9 @@ def seed_cricket_data():
 
             for over in range(20):
                 bowler = bowlers[over % len(bowlers)]
+
                 for ball in range(1, 7):
+
                     if (
                         target_runs
                         and curr_runs > target_runs
@@ -261,25 +314,34 @@ def seed_cricket_data():
                         break
 
                     rand_val = rng.random()
+
                     is_wicket = False
                     dismissal = None
                     runs = 0
+
                     current_striker = batting_squad[striker_idx]
                     player_out_id = None
 
                     if rand_val < 0.045 and curr_wickets < 10:
                         is_wicket = True
-                        dismissal = rng.choice(["caught", "bowled", "lbw"])
+                        dismissal = rng.choice(
+                            ["caught", "bowled", "lbw"]
+                        )
                         player_out_id = current_striker.id
                         curr_wickets += 1
+
                     elif rand_val < 0.38:
                         runs = 0  # Dot ball
+
                     elif rand_val < 0.70:
                         runs = 1  # Single
+
                     elif rand_val < 0.83:
                         runs = 2  # Two runs
+
                     elif rand_val < 0.94:
                         runs = 4  # Four
+
                     else:
                         runs = 6  # Six
 
@@ -292,7 +354,9 @@ def seed_cricket_data():
                         ball_number=ball,
                         batter_id=current_striker.id,
                         bowler_id=bowler.id,
-                        non_striker_id=batting_squad[non_striker_idx].id,
+                        non_striker_id=batting_squad[
+                            non_striker_idx
+                        ].id,
                         runs_batter=runs,
                         runs_extras=0,
                         is_wicket=is_wicket,
@@ -301,6 +365,7 @@ def seed_cricket_data():
                         cumulative_runs=curr_runs,
                         cumulative_wickets=curr_wickets,
                     )
+
                     deliveries.append(deliv)
 
                     # Update striker AFTER delivery has been created
@@ -308,6 +373,7 @@ def seed_cricket_data():
                         if next_batter_idx < len(batting_squad):
                             striker_idx = next_batter_idx
                             next_batter_idx += 1
+
                     else:
                         if runs in [1, 3]:
                             striker_idx, non_striker_idx = (
@@ -316,18 +382,29 @@ def seed_cricket_data():
                             )
 
                 # End of over strike rotation
-                striker_idx, non_striker_idx = non_striker_idx, striker_idx
+                striker_idx, non_striker_idx = (
+                    non_striker_idx,
+                    striker_idx,
+                )
 
             db.add_all(deliveries)
+
             innings.total_runs = curr_runs
             innings.total_wickets = curr_wickets
+
             db.commit()
+
             return curr_runs
 
         # Generate both innings
         ind_score = generate_innings(
-            1, ind.id, aus.id, ind_players, aus_players
+            1,
+            ind.id,
+            aus.id,
+            ind_players,
+            aus_players,
         )
+
         generate_innings(
             2,
             aus.id,
@@ -338,6 +415,7 @@ def seed_cricket_data():
         )
 
         print("Seeded successfully with ID sequences reset to 1!")
+
     finally:
         db.close()
 
