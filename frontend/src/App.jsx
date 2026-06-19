@@ -16,7 +16,7 @@ import TeamDetailPage from './pages/TeamDetailPage'
 import PlayerComparisonPage from './pages/PlayerComparisonPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
-
+import StrategyLabPage from './pages/StrategyLabPage'
 import StrategyPage from './pages/StrategyPage'
 import DecisionReplayPage from './pages/DecisionReplayPage'
 import ScenarioSimulatorPage from './pages/ScenarioSimulatorPage'
@@ -120,6 +120,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+  path="/strategy-lab"
+  element={
+    <ProtectedRoute allowedRoles={['ANALYST', 'COACH', 'ADMIN']}>
+      <StrategyLabPage />
+    </ProtectedRoute>
+  }
+/>
 
           <Route
             path="/ai-analyst"
