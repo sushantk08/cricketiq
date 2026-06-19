@@ -35,6 +35,8 @@ services:
       - LLM_MODEL=openai/gpt-oss-20b
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend/data/historical:/app/backend/data/historical:ro
     depends_on:
       postgres:
         condition: service_healthy

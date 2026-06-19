@@ -498,3 +498,159 @@ def write_player_historical_dataset(
             writer.writerow(row)
 
     return len(rows)
+
+def build_cricsheet_player_team_catalog() -> tuple[list[str], list[dict]]:
+    """
+    Build a team and player catalog from the generated Cricsheet
+    player-history CSV.
+
+    Each player is assigned to the team they are most frequently
+    associated with in the historical dataset.
+    """
+    import pandas as pd
+
+    dataset_path = (
+        Path(__file__).resolve().parents[2]
+        / "data"
+        / "historical"
+        / "player_delivery_history.csv"
+    )
+
+    if not dataset_path.exists():
+        raise FileNotFoundError(
+            f"Historical player dataset not found: {dataset_path}"
+        )
+
+    df = pd.read_csv(
+        dataset_path,
+        usecols=["teams", "batting_team", "batter", "bowler"],
+    )
+
+    team_names: set[str] = set()
+    player_team_counts: dict[str, dict[str, int]] = {}
+
+    for _, row in df.iterrows():
+        teams_value = row.get("teams")
+        batting_team = row.get("batting_team")
+        batter = row.get("batter")
+        bowler = row.get("bowler")
+
+        match_teams = set()
+
+        if pd.notna(teams_value):
+            match_teams = {
+                team.strip()
+                for team in str(teams_value).split("|")
+                if team.strip()
+            }
+            team_names.update(match_teams)
+
+        if pd.notna(batter) and pd.notna(batting_team):
+            player = str(batter).strip()
+            team = str(batting_team).strip()
+
+            if player and team:
+                player_team_counts.setdefault(player, {})
+                player_team_counts[player][team] = (
+                    player_team_counts[player].get(team, 0) + 1
+                )
+
+        if pd.notna(bowler) and match_teams and pd.notna(batting_team):
+            player = str(bowler).strip()
+
+            bowling_teams = [
+                team
+                for team in match_teams
+                if team != str(batting_team).strip()
+            ]
+
+            if player and bowling_teams:
+                team = bowling_teams[0]
+
+                player_team_counts.setdefault(player, {})
+                player_team_counts[player][team] = (
+                    player_team_counts[player].get(team, 0) + 1
+                )
+
+    players = []
+
+    for player_name, team_counts in player_team_counts.items():
+        primary_team = max(team_counts, key=team_counts.get)
+
+        players.append(
+            {
+                "name": player_name,
+                "team": primary_team,
+            }
+        )
+
+    players.sort(key=lambda item: item["name"].lower())
+
+    return sorted(team_names), players
+
+def import_cricsheet_catalog(db) -> tuple[int, int]:
+    """
+    Import Cricsheet teams and players into the CricketIQ database.
+
+    Existing teams and players are reused by name. New players are
+    assigned to their most frequently associated historical team.
+    """
+    from backend.app.models.cricket import Player, Team
+
+    teams, players = build_cricsheet_player_team_catalog()
+
+    team_map = {}
+
+    for team_name in teams:
+        team = (
+            db.query(Team)
+            .filter(Team.name == team_name)
+            .first()
+        )
+
+        if not team:
+            short_name = "".join(
+                part[0] for part in team_name.split() if part
+            ).upper()[:6]
+
+            team = Team(
+                name=team_name,
+                short_name=short_name or team_name[:3].upper(),
+            )
+            db.add(team)
+            db.flush()
+
+        team_map[team_name] = team
+
+    new_players = 0
+
+    for player_data in players:
+        player_name = player_data["name"]
+        team_name = player_data["team"]
+
+        existing_player = (
+            db.query(Player)
+            .filter(Player.name == player_name)
+            .first()
+        )
+
+        if existing_player:
+            continue
+
+        team = team_map.get(team_name)
+
+        db.add(
+            Player(
+                name=player_name,
+                role="BATTER",
+                batting_style=None,
+                bowling_style=None,
+                team_id=team.id if team else None,
+            )
+        )
+
+        new_players += 1
+
+    db.commit()
+
+    return len(team_map), new_players

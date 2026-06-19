@@ -42,3 +42,5 @@ t20s.zip
 
 backend/data/historical/player_delivery_history.csv
 backend/data/historical/win_probability.csv
+
+backend/data/historical/cricsheet_player_team_catalog.csv
