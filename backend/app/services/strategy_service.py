@@ -288,6 +288,11 @@ def recommend_bowling_options(
         .all()
     )
 
+    # Strategy Lab can request a smaller candidate pool
+    # to avoid expensive analytics over every bowler.
+    if req.max_candidates is not None:
+        bowlers = bowlers[:req.max_candidates]
+
     ranked_candidates = []
     phase_key = req.match_phase.lower()
 
@@ -403,7 +408,6 @@ def recommend_bowling_options(
         match_phase=phase_key,
         recommendations=recommendations,
     )
-
 
 def recommend_batting_strategy(
     db: Session,

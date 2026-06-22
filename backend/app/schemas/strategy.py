@@ -1,4 +1,5 @@
 from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -18,12 +19,26 @@ class MatchupStats(BaseModel):
 
 
 class BowlingStrategyRequest(BaseModel):
-    batter_id: int = Field(..., description="ID of the batter at crease")
-    bowling_team_id: int = Field(
-        ..., description="Team ID of the bowling team"
+    batter_id: int = Field(
+        ...,
+        description="ID of the batter at crease",
     )
+
+    bowling_team_id: int = Field(
+        ...,
+        description="ID of the bowling team",
+    )
+
     match_phase: str = Field(
-        "middle", description="Phase: 'powerplay', 'middle', or 'death'"
+        "middle",
+        description="Phase: 'powerplay', 'middle', or 'death'",
+    )
+
+    max_candidates: int | None = Field(
+        None,
+        ge=1,
+        le=20,
+        description="Optional maximum number of bowling candidates to evaluate",
     )
 
 
@@ -45,12 +60,19 @@ class BowlingStrategyResponse(BaseModel):
 
 
 class BattingStrategyRequest(BaseModel):
-    bowler_id: int = Field(..., description="ID of the active bowler")
-    match_phase: str = Field(
-        "middle", description="'powerplay', 'middle', or 'death'"
+    bowler_id: int = Field(
+        ...,
+        description="ID of the active bowler",
     )
+
+    match_phase: str = Field(
+        "middle",
+        description="'powerplay', 'middle', or 'death'",
+    )
+
     required_run_rate: Optional[float] = Field(
-        None, description="Current RRR if chasing"
+        None,
+        description="Current RRR if chasing",
     )
 
 
@@ -58,9 +80,10 @@ class BattingStrategyResponse(BaseModel):
     bowler_id: int
     bowler_name: str
     bowling_style: Optional[str] = None
-    recommended_approach: (
-        str  # 'AGGRESSIVE_ATTACK', 'STRIKE_ROTATION', 'CONSOLIDATION'
-    )
+
+    recommended_approach: str
+    # 'AGGRESSIVE_ATTACK', 'STRIKE_ROTATION', 'CONSOLIDATION'
+
     risk_level: str
     tactical_directive: str
     supporting_insight: str

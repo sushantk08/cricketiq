@@ -21,10 +21,15 @@ from backend.app.services.strategy_service import (
 
 
 def _clamp_probability(value: float) -> float:
-    return round(max(0.0, min(100.0, value)), 2)
+    return round(
+        max(0.0, min(100.0, value)),
+        2,
+    )
 
 
-def _calculate_required_run_rate(req: StrategyLabRequest):
+def _calculate_required_run_rate(
+    req: StrategyLabRequest,
+):
     if req.target_runs is None:
         return None
 
@@ -59,35 +64,45 @@ def _calculate_required_run_rate(req: StrategyLabRequest):
     if balls_remaining <= 0:
         return None
 
-    return (runs_required / balls_remaining) * 6.0
+    return (
+        runs_required / balls_remaining
+    ) * 6.0
 
 
 def _build_strategy_option(
     recommendation,
     batting_strategy,
-    scenario_result,
-    baseline_score: float,
+    baseline_probability: float,
     average_score: float,
     rank: int,
 ) -> StrategyOption:
-    score_delta = recommendation.recommendation_score - average_score
+    score_delta = (
+        recommendation.recommendation_score
+        - average_score
+    )
 
-    # Convert the recommendation score difference into a
-    # small model adjustment around the baseline scenario.
     probability_adjustment = score_delta * 0.12
 
     adjusted_probability = _clamp_probability(
-        baseline_score + probability_adjustment
+        baseline_probability + probability_adjustment
     )
 
     return StrategyOption(
         rank=rank,
         bowler_id=recommendation.bowler_id,
         bowler_name=recommendation.bowler_name,
-        recommendation_score=recommendation.recommendation_score,
-        matchup_advantage=recommendation.matchup_advantage,
-        phase_economy=recommendation.phase_economy,
-        projected_batting_win_probability=adjusted_probability,
+        recommendation_score=(
+            recommendation.recommendation_score
+        ),
+        matchup_advantage=(
+            recommendation.matchup_advantage
+        ),
+        phase_economy=(
+            recommendation.phase_economy
+        ),
+        projected_batting_win_probability=(
+            adjusted_probability
+        ),
         risk_level=(
             batting_strategy.risk_level
             if batting_strategy
@@ -96,7 +111,10 @@ def _build_strategy_option(
         tactical_directive=(
             batting_strategy.tactical_directive
             if batting_strategy
-            else "Assess this bowler using matchup and phase conditions."
+            else (
+                "Assess this bowler using matchup "
+                "and phase conditions."
+            )
         ),
         rationale=recommendation.rationale,
     )
@@ -116,16 +134,24 @@ def run_strategy_lab(
     if not batter:
         raise ValueError("Batter not found")
 
+    # ---------------------------------------------------------
+    # Get bowling candidates once.
+    # ---------------------------------------------------------
+
     bowling_result = recommend_bowling_options(
         db,
         BowlingStrategyRequest(
             batter_id=req.batter_id,
             bowling_team_id=req.bowling_team_id,
             match_phase=req.match_phase,
+            max_candidates=8,
         ),
     )
 
-    if not bowling_result or not bowling_result.recommendations:
+    if (
+        not bowling_result
+        or not bowling_result.recommendations
+    ):
         return StrategyLabResponse(
             batter_id=batter.id,
             batter_name=batter.name,
@@ -137,9 +163,14 @@ def run_strategy_lab(
             options=[],
             recommended_option=None,
             decision_summary=(
-                "No eligible bowling options were found for this scenario."
+                "No eligible bowling options were "
+                "found for this scenario."
             ),
         )
+
+    # ---------------------------------------------------------
+    # Run the scenario model exactly once.
+    # ---------------------------------------------------------
 
     scenario_result = run_scenario_simulation(
         ScenarioSimulateRequest(
@@ -153,7 +184,8 @@ def run_strategy_lab(
 
     baseline_probability = (
         scenario_result.win_probability_batting
-        if scenario_result.win_probability_batting is not None
+        if scenario_result.win_probability_batting
+        is not None
         else 50.0
     )
 
@@ -162,63 +194,93 @@ def run_strategy_lab(
         for item in bowling_result.recommendations
     ]
 
-    average_score = mean(recommendation_scores)
+    average_score = mean(
+        recommendation_scores
+    )
 
-    required_run_rate = _calculate_required_run_rate(req)
+    required_run_rate = (
+        _calculate_required_run_rate(req)
+    )
+
+    # ---------------------------------------------------------
+    # Build options.
+    # ---------------------------------------------------------
 
     options = []
 
-    for recommendation in bowling_result.recommendations:
-
+    for recommendation in (
+        bowling_result.recommendations[:5]
+    ):
         batting_strategy = recommend_batting_strategy(
             db,
             BattingStrategyRequest(
                 bowler_id=recommendation.bowler_id,
                 match_phase=req.match_phase,
-                required_run_rate=required_run_rate,
+                required_run_rate=(
+                    required_run_rate
+                ),
             ),
         )
 
-        options.append(
-            _build_strategy_option(
-                recommendation=recommendation,
-                batting_strategy=batting_strategy,
-                scenario_result=scenario_result,
-                baseline_score=baseline_probability,
-                average_score=average_score,
-                rank=recommendation.rank,
-            )
+        option = _build_strategy_option(
+            recommendation=recommendation,
+            batting_strategy=batting_strategy,
+            baseline_probability=(
+                baseline_probability
+            ),
+            average_score=average_score,
+            rank=recommendation.rank,
         )
 
+        options.append(option)
+
+    # Lower projected batting probability means
+    # the option is more favorable from the
+    # bowling-side decision perspective.
     options.sort(
-        key=lambda option: option.projected_batting_win_probability,
-        reverse=False,
+        key=lambda option: (
+            option.projected_batting_win_probability
+            if option.projected_batting_win_probability
+            is not None
+            else 100.0
+        )
     )
 
-    for index, option in enumerate(options, start=1):
+    for index, option in enumerate(
+        options,
+        start=1,
+    ):
         option.rank = index
 
-    # Lowest projected batting probability represents the strongest
-    # bowling-side option under this heuristic.
-    recommended = options[0] if options else None
+    recommended = (
+        options[0]
+        if options
+        else None
+    )
 
     if recommended:
         decision_summary = (
-            f"Strategy Lab identifies {recommended.bowler_name} as the "
-            f"top bowling option against {batter.name}. "
+            f"Strategy Lab identifies "
+            f"{recommended.bowler_name} as the top "
+            f"bowling option against "
+            f"{batter.name}. "
             f"Its recommendation score is "
-            f"{recommended.recommendation_score:.1f}/100, with "
+            f"{recommended.recommendation_score:.1f}/100, "
+            f"with "
             f"{recommended.matchup_advantage.replace('_', ' ').title()} "
-            f"head-to-head evidence and {recommended.phase_economy:.1f} "
-            f"RPO in the selected phase. "
-            f"The baseline batting win probability is "
-            f"{baseline_probability:.1f}%, while this option's "
-            f"decision-adjusted estimate is "
+            f"head-to-head evidence and "
+            f"{recommended.phase_economy:.1f} RPO "
+            f"in the selected phase. "
+            f"The baseline batting win probability "
+            f"is {baseline_probability:.1f}%, while "
+            f"this option's decision-adjusted "
+            f"estimate is "
             f"{recommended.projected_batting_win_probability:.1f}%."
         )
     else:
         decision_summary = (
-            "Strategy Lab could not produce a ranked decision."
+            "Strategy Lab could not produce "
+            "a ranked decision."
         )
 
     return StrategyLabResponse(
@@ -233,10 +295,12 @@ def run_strategy_lab(
         recommended_option=recommended,
         decision_summary=decision_summary,
         uncertainty_note=(
-            "The baseline probability comes from CricketIQ's historical "
-            "scenario model. Option-level probability is a decision-"
-            "adjusted heuristic derived from the bowling recommendation "
-            "score and should not be interpreted as a separately trained "
-            "win-probability model."
+            "The baseline probability comes from "
+            "CricketIQ's historical scenario model. "
+            "Option-level probability is a "
+            "decision-adjusted heuristic derived "
+            "from the bowling recommendation score "
+            "and should not be interpreted as a "
+            "separately trained win-probability model."
         ),
     )
