@@ -21,9 +21,20 @@ services:
     image: mongo:7
     container_name: cricketiq_mongodb
     ports:
-      - "27018:27017"
+      - "27019:27017"
     volumes:
       - mongodb_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: cricketiq_redis
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
@@ -41,9 +52,9 @@ services:
       LLM_MODEL: ${LLM_MODEL}
       CRICKET_API_KEY: ${CRICKET_API_KEY}
       CRICKET_API_BASE_URL: ${CRICKET_API_BASE_URL}
-      REDIS_URL: ${REDIS_URL}
+      REDIS_URL: redis://redis:6379/0
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - ./backend/data/historical:/app/backend/data/historical:ro
     depends_on:
@@ -51,6 +62,36 @@ services:
         condition: service_healthy
       mongodb:
         condition: service_started
+      redis:
+        condition: service_healthy
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cricketiq_celery_worker
+    command: ["celery", "-A", "backend.app.worker:celery_app", "worker", "--loglevel=info"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      MONGODB_URL: ${MONGODB_URL}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_BASE_URL: ${LLM_BASE_URL}
+      LLM_MODEL: ${LLM_MODEL}
+      CRICKET_API_KEY: ${CRICKET_API_KEY}
+      CRICKET_API_BASE_URL: ${CRICKET_API_BASE_URL}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend/data/historical:/app/backend/data/historical:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   frontend:
     build:
@@ -58,7 +99,7 @@ services:
       dockerfile: Dockerfile
     container_name: cricketiq_frontend
     ports:
-      - "3000:80"
+      - "3001:80"
     depends_on:
       - backend
 
