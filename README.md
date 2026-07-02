@@ -1,12 +1,20 @@
 # CricketIQ
 
-AI-Powered Cricket Strategy, Performance & Decision Intelligence Platform.
+**AI-Powered Cricket Strategy, Performance & Decision Intelligence Platform.**
 
 CricketIQ is a full-stack cricket intelligence platform designed to help fans, analysts, coaches, and cricket teams understand:
 
 > **What is happening? Why is it happening? What could happen next? What tactical options are available?**
 
 The platform combines historical ball-by-ball cricket data, statistical analytics, machine learning, scenario simulation, matchup intelligence, turning-point detection, counterfactual analysis, and AI-assisted reporting into a single application.
+
+## Live Demo
+
+**Production:** https://cricketiq.duckdns.org
+
+The current AWS deployment uses HTTPS, an AWS Elastic IP, Nginx reverse proxying, FastAPI, AWS RDS PostgreSQL, MongoDB, Redis, and a persistent Celery worker.
+
+> The live environment is a project/demo deployment and should not be treated as a production service with enterprise-grade guarantees.
 
 ---
 
@@ -33,40 +41,93 @@ The platform combines historical ball-by-ball cricket data, statistical analytic
 - Admin verification workflow
 - PostgreSQL relational database
 - MongoDB document storage
-- Dockerized full-stack deployment
-- GitHub Actions CI/CD validation
+- Redis + Celery background processing
 - Historical Cricsheet data processing
+- Dockerized local development
+- AWS deployment with Nginx and HTTPS
+- GitHub Actions CI/CD validation
 
 ---
 
 # Architecture
 
+## Application Architecture
+
 ```text
-                           CricketIQ
-                               │
-                 ┌─────────────┴─────────────┐
-                 │                           │
-          React Frontend              FastAPI Backend
-                 │                           │
-          React Router                REST API Layer
-                 │                           │
-                 └─────────────┬─────────────┘
-                               │
-                ┌──────────────┼──────────────┐
-                │              │              │
-                ▼              ▼              ▼
-           PostgreSQL      MongoDB       Historical
-           Relational      AI Reports    Cricket Data
-                │              │              │
-                └──────────────┼──────────────┘
-                               │
-                       Analytics / ML Layer
-                               │
-              ┌────────────────┼────────────────┐
-              │                │                │
-           Pandas /         NumPy /        scikit-learn
-           Analytics         Models          ML Models
+                               CricketIQ
+                                   │
+                ┌──────────────────┴──────────────────┐
+                │                                     │
+         React + Vite Frontend                  FastAPI Backend
+                │                                     │
+         React Router / UI                      REST API Layer
+                │                                     │
+                └──────────────────┬──────────────────┘
+                                   │
+             ┌─────────────────────┼─────────────────────┐
+             │                     │                     │
+             ▼                     ▼                     ▼
+       PostgreSQL              MongoDB                Redis
+       Relational DB           AI Reports          Celery Broker
+             │                     │                     │
+             └─────────────────────┼─────────────────────┘
+                                   │
+                          Analytics / ML Layer
+                                   │
+                   ┌───────────────┼───────────────┐
+                   │               │               │
+                Pandas           NumPy        scikit-learn
+                   │               │               │
+                   └───────────────┴───────────────┘
 ```
+
+## Current AWS Deployment
+
+```text
+                           Internet
+                               │
+                               ▼
+                    https://cricketiq.duckdns.org
+                               │
+                         Docker Nginx
+                           :443 / :80
+                               │
+                               ▼
+                     CricketIQ Web Layer
+                         Nginx on :8080
+                               │
+             ┌─────────────────┴─────────────────┐
+             │                                   │
+             ▼                                   ▼
+       React Production Build                /api/* proxy
+                                                 │
+                                                 ▼
+                                      FastAPI / Uvicorn :8001
+                                                 │
+                               ┌─────────────────┼─────────────────┐
+                               │                 │                 │
+                               ▼                 ▼                 ▼
+                         AWS RDS PostgreSQL   MongoDB           Redis
+                                               │                 │
+                                               │                 ▼
+                                               │             Celery Worker
+                                               │
+                                               ▼
+                                          AI Reports
+```
+
+### AWS deployment components currently used
+
+- AWS EC2 for the application host
+- AWS RDS PostgreSQL for relational application data
+- Docker MongoDB for document storage
+- Docker Redis for Celery messaging/result storage
+- FastAPI managed by `systemd`
+- Celery worker managed by `systemd`
+- Nginx for static frontend serving and reverse proxying
+- DuckDNS for the public hostname
+- Let's Encrypt for HTTPS certificates
+- AWS Elastic IP for a stable public address
 
 ---
 
@@ -82,6 +143,8 @@ The platform combines historical ball-by-ball cricket data, statistical analytic
 - PostgreSQL
 - MongoDB
 - PyMongo
+- Redis
+- Celery
 - JWT Authentication
 - Pandas
 - NumPy
@@ -105,8 +168,12 @@ The platform combines historical ball-by-ball cricket data, statistical analytic
 - Docker
 - Docker Compose
 - Nginx
+- AWS EC2
+- AWS RDS PostgreSQL
+- AWS Elastic IP
+- DuckDNS
+- Let's Encrypt / Certbot
 - GitHub Actions
-- Google Cloud Platform for production deployment
 
 ---
 
@@ -122,14 +189,15 @@ cricketiq/
 │   │   ├── data/
 │   │   ├── database/
 │   │   ├── integrations/
+│   │   ├── ml/
 │   │   ├── models/
 │   │   ├── schemas/
 │   │   ├── services/
-│   │   └── main.py
+│   │   ├── main.py
+│   │   └── worker.py
 │   │
 │   ├── data/
 │   │   └── historical/
-│   │
 │   ├── migrations/
 │   ├── tests/
 │   ├── Dockerfile
@@ -146,7 +214,9 @@ cricketiq/
 │   │   └── services/
 │   ├── Dockerfile
 │   ├── nginx.conf
-│   └── package.json
+│   ├── package-lock.json
+│   ├── package.json
+│   └── vite.config.js
 │
 ├── .github/
 │   └── workflows/
@@ -200,6 +270,7 @@ The model uses match-state variables such as:
 - Runs required
 - Balls remaining
 - Wickets in hand
+- Required run rate
 - Match progression
 
 ### API
@@ -212,16 +283,17 @@ The application can also generate ball-by-ball win-probability curves for a matc
 
 ### Model Evaluation
 
-The historical model has been evaluated chronologically using historical training data followed by later test data.
+The deployed historical model is evaluated chronologically using earlier match data for training and later match data for testing.
 
-Current verified evaluation:
+A verified evaluation run during the current AWS deployment produced:
 
 ```text
-Accuracy: 84.38%
+Rows:       364,406
+Accuracy:   84.38%
 Brier Score: 0.10976
 ```
 
-These metrics describe the evaluated historical dataset and should not be interpreted as a guarantee of future prediction performance.
+These metrics describe the evaluated historical dataset and are **not** a guarantee of future prediction performance.
 
 ---
 
@@ -244,7 +316,7 @@ Signals can include:
 GET /api/matches/{id}/turning-points
 ```
 
-The detector ranks meaningful events instead of treating every delivery as a turning point.
+The detector focuses on meaningful events instead of treating every delivery as a turning point.
 
 ---
 
@@ -439,23 +511,23 @@ Recommendations consider factors such as:
 Strategy Lab combines several CricketIQ intelligence systems into a single tactical analysis.
 
 ```text
-                   Strategy Lab
-                        │
-       ┌────────────────┼────────────────┐
-       │                │                │
-       ▼                ▼                ▼
- Bowling Strategy   Match Situation   Scenario Model
-       │                │                │
-       └────────────────┼────────────────┘
-                        │
-                        ▼
-                Matchup Intelligence
-                        │
-                        ▼
-                Batting Strategy
-                        │
-                        ▼
-              Combined Recommendation
+                       Strategy Lab
+                            │
+          ┌─────────────────┼─────────────────┐
+          │                 │                 │
+          ▼                 ▼                 ▼
+   Bowling Strategy   Match Situation   Scenario Model
+          │                 │                 │
+          └─────────────────┼─────────────────┘
+                            │
+                            ▼
+                    Matchup Intelligence
+                            │
+                            ▼
+                     Batting Strategy
+                            │
+                            ▼
+                   Combined Recommendation
 ```
 
 ### Strategy Lab Inputs
@@ -486,9 +558,9 @@ POST /api/strategy-lab/analyze
 - Decision summary
 - Uncertainty note
 
-Strategy Lab uses a limited candidate pool for its tactical analysis so that expensive historical analytics are not unnecessarily executed for every player in the complete catalog.
+Strategy Lab uses a limited candidate pool for tactical analysis so expensive historical analytics are not unnecessarily executed for every player in the complete catalog.
 
-All option-level probabilities are decision-adjusted heuristic estimates and should not be interpreted as an independently trained win-probability model.
+Option-level probabilities are decision-adjusted heuristic estimates and should not be interpreted as an independently trained win-probability model.
 
 ---
 
@@ -512,6 +584,17 @@ The AI layer can generate:
 - Natural-language answers to cricket questions
 
 AI analysis is designed to be grounded in CricketIQ's available analytics and database information.
+
+### LLM Configuration
+
+An external OpenAI-compatible provider is optional. When no usable `LLM_API_KEY` is configured, the application can fall back to built-in data-driven responses for supported flows.
+
+Default provider settings in the project are:
+
+```env
+LLM_BASE_URL=https://api.groq.com/openai/v1
+LLM_MODEL=openai/gpt-oss-20b
+```
 
 AI output should be treated as assisted analysis rather than an authoritative source of match facts.
 
@@ -596,9 +679,13 @@ cd backend
 alembic upgrade head
 ```
 
+### Current AWS database
+
+The deployed application uses **AWS RDS PostgreSQL**. The database is private and is accessed from the EC2 application host rather than being exposed directly to the internet.
+
 ---
 
-# MongoDB
+## MongoDB
 
 MongoDB is used for flexible document-oriented information such as AI-generated reports.
 
@@ -608,11 +695,28 @@ Example collection:
 ai_reports
 ```
 
-Docker configuration:
+For local Docker development, the default project compose setup provides MongoDB. In the current AWS deployment, MongoDB runs on the EC2 host in Docker and is consumed by the FastAPI application and Celery worker.
 
-```env
-MONGODB_URL=mongodb://mongodb:27017
+---
+
+## Redis & Celery
+
+Redis is used as the Celery broker and result backend.
+
+```text
+FastAPI
+   │
+   ▼
+Redis
+   │
+   ▼
+Celery Worker
+   │
+   ├── generate_match_report
+   └── health_check
 ```
+
+The current AWS deployment runs Redis in Docker and the Celery worker as a persistent `systemd` service.
 
 ---
 
@@ -627,9 +731,9 @@ CricketIQ uses historical T20 data to support:
 - Strategy recommendations
 - Historical model training
 
-The historical pipeline is based on Cricsheet T20 match data.
+The historical pipeline is based on **Cricsheet T20 match data**.
 
-The development/CI pipeline can generate:
+The development/deployment pipeline can generate:
 
 ```text
 win_probability.csv
@@ -637,6 +741,42 @@ player_delivery_history.csv
 ```
 
 Generated historical datasets are intentionally excluded from Git.
+
+### Current deployed dataset sizes
+
+A verified AWS deployment run generated:
+
+```text
+player_delivery_history.csv → 781,953 rows
+win_probability.csv         → 364,406 rows
+```
+
+### Generate player historical data
+
+The importer expects the Cricsheet T20 ZIP archive at:
+
+```text
+~/Downloads/t20s.zip
+```
+
+Download it from Cricsheet, then run:
+
+```bash
+mkdir -p ~/Downloads
+wget -O ~/Downloads/t20s.zip https://cricsheet.org/downloads/t20s.zip
+```
+
+Generate the player dataset:
+
+```bash
+python -c "from pathlib import Path; from backend.app.data.cricsheet_importer import write_player_historical_dataset; n=write_player_historical_dataset(Path('backend/data/historical/player_delivery_history.csv')); print(f'Generated player_delivery_history.csv with {n} rows')"
+```
+
+Generate the win-probability dataset:
+
+```bash
+python -c "from pathlib import Path; from backend.app.data.cricsheet_importer import write_training_dataset; n=write_training_dataset(Path('backend/data/historical/win_probability.csv')); print(f'Generated win_probability.csv with {n} rows')"
+```
 
 ---
 
@@ -664,18 +804,20 @@ The data pipeline supports:
 
 # Docker Deployment
 
-CricketIQ is fully containerized for local deployment.
+CricketIQ is fully containerized for local development and testing.
 
-### Docker Services
+### Docker services
 
 ```text
 PostgreSQL
 MongoDB
+Redis
 FastAPI Backend
-React + Nginx Frontend
+Celery Worker
+React Frontend
 ```
 
-### Start the complete application
+### Start the complete local stack
 
 ```bash
 docker compose up -d --build
@@ -687,14 +829,7 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Expected services:
-
-```text
-cricketiq_postgres
-cricketiq_mongodb
-cricketiq_backend
-cricketiq_frontend
-```
+> The AWS deployment is intentionally **hybrid** rather than identical to the local Compose stack: PostgreSQL is moved to AWS RDS, while FastAPI and Celery are managed by `systemd`, and MongoDB/Redis run in Docker on the EC2 host.
 
 ---
 
@@ -712,7 +847,7 @@ to:
 .env
 ```
 
-Example configuration:
+Example configuration for local development:
 
 ```env
 POSTGRES_USER=postgres
@@ -723,7 +858,8 @@ JWT_SECRET_KEY=your-secure-jwt-secret
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 
-MONGODB_URL=mongodb://mongodb:27017
+MONGODB_URL=mongodb://localhost:27018
+REDIS_URL=redis://localhost:6379/0
 
 LLM_API_KEY=
 LLM_BASE_URL=https://api.groq.com/openai/v1
@@ -731,9 +867,9 @@ LLM_MODEL=openai/gpt-oss-20b
 
 CRICKET_API_KEY=
 CRICKET_API_BASE_URL=https://api.cricapi.com/v1
-
-REDIS_URL=redis://localhost:6379/0
 ```
+
+For production, use the actual infrastructure connection strings and secrets for that environment.
 
 Never commit the real `.env` file.
 
@@ -750,7 +886,13 @@ python -m venv venv
 ## Windows
 
 ```powershell
-venv\Scriptsctivate
+venv\Scripts\activate
+```
+
+## Linux / macOS
+
+```bash
+source venv/bin/activate
 ```
 
 Install dependencies:
@@ -766,7 +908,7 @@ cd backend
 alembic upgrade head
 ```
 
-Start the backend:
+Start the backend from the repository root:
 
 ```bash
 uvicorn backend.app.main:app --reload
@@ -782,7 +924,7 @@ http://127.0.0.1:8000
 
 # FastAPI Documentation
 
-Swagger UI:
+During local development, Swagger UI is available at:
 
 ```text
 http://localhost:8000/docs
@@ -803,6 +945,8 @@ Example health response:
 }
 ```
 
+In the AWS deployment, FastAPI runs internally on `127.0.0.1:8001` and public application requests are routed through Nginx.
+
 ---
 
 # Local Frontend Development
@@ -819,13 +963,19 @@ Install dependencies:
 npm install
 ```
 
+For a clean lockfile-based install:
+
+```bash
+npm ci
+```
+
 Start the development server:
 
 ```bash
 npm run dev
 ```
 
-Development frontend:
+Typical Vite development URL:
 
 ```text
 http://localhost:5173
@@ -847,15 +997,100 @@ Production assets are generated in:
 frontend/dist/
 ```
 
-The production Docker image serves the React application through Nginx.
+The production frontend is served through Nginx.
 
-Nginx also proxies:
+The frontend uses relative `/api/...` URLs so the browser communicates with the backend through the same public hostname rather than a hard-coded localhost address.
+
+---
+
+# AWS Deployment
+
+The current live deployment is hosted in **AWS US East (N. Virginia), `us-east-1`**.
+
+## Main components
 
 ```text
-/api/*
+EC2
+ ├── Nginx
+ ├── FastAPI
+ ├── Celery Worker
+ ├── MongoDB (Docker)
+ └── Redis (Docker)
+
+RDS
+ └── PostgreSQL
 ```
 
-to the FastAPI backend.
+## Public hostname
+
+```text
+https://cricketiq.duckdns.org
+```
+
+## Deployment characteristics
+
+- Single EC2 application host
+- AWS RDS PostgreSQL
+- Private PostgreSQL networking from EC2 to RDS
+- Nginx HTTPS reverse proxy
+- Let's Encrypt certificate
+- DuckDNS hostname
+- AWS Elastic IP
+- FastAPI persistent `systemd` service
+- Celery persistent `systemd` service
+- Redis container with automatic restart
+- MongoDB container with automatic restart
+- Public API exposed through HTTPS Nginx routing
+
+## Current production service commands
+
+Check FastAPI:
+
+```bash
+sudo systemctl status cricketiq --no-pager
+```
+
+Check Celery:
+
+```bash
+sudo systemctl status cricketiq-celery --no-pager
+```
+
+Check Nginx:
+
+```bash
+sudo systemctl status nginx --no-pager
+```
+
+Check Redis:
+
+```bash
+docker ps --format 'table {{.Names}}\t{{.Status}}' | grep cricketiq_redis
+```
+
+Check MongoDB:
+
+```bash
+docker ps --format 'table {{.Names}}\t{{.Status}}' | grep genericrx_mongo
+```
+
+## Deployment verification performed
+
+The current AWS deployment was manually verified with the following working paths:
+
+```text
+HTTPS frontend
+HTTPS /api/teams
+FastAPI health endpoint
+Historical model evaluation
+AI match analysis
+Redis connectivity
+Celery task execution
+MongoDB authenticated connectivity
+Celery → MongoDB AI report persistence
+```
+
+A background report task completed successfully during deployment and returned a MongoDB report identifier.
 
 ---
 
@@ -869,7 +1104,7 @@ Run:
 python -m pytest backend/tests -v
 ```
 
-Current verified test coverage includes:
+The test suite covers application areas such as:
 
 ```text
 Health Check
@@ -887,13 +1122,7 @@ Player Matchup
 Live Intelligence
 ```
 
-Current verified result:
-
-```text
-13 passed
-```
-
-There is currently one non-blocking dependency deprecation warning from the Starlette/AnyIO stack.
+Always run the current repository test suite before publishing a new release; test counts can change as the project evolves.
 
 ---
 
@@ -901,48 +1130,33 @@ There is currently one non-blocking dependency deprecation warning from the Star
 
 GitHub Actions validates the application through automated workflows.
 
-The CI pipeline includes:
+The CI pipeline is designed to cover:
 
 ```text
-┌─────────────────────┐
-│ Backend Environment │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ Historical Dataset  │
-│ Preparation         │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ Alembic Migrations  │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ Database Seed       │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ Backend Tests       │
-└─────────────────────┘
+Backend Environment
+        │
+        ▼
+Historical Dataset Preparation
+        │
+        ▼
+Alembic Migrations
+        │
+        ▼
+Database Seed
+        │
+        ▼
+Backend Tests
 
-           +
+        +
 
-┌─────────────────────┐
-│ Frontend Build      │
-└─────────────────────┘
+Frontend Production Build
 
-           +
+        +
 
-┌─────────────────────┐
-│ Docker Build        │
-└─────────────────────┘
+Docker Image Builds
 ```
 
-CI verifies:
+CI verification includes areas such as:
 
 - PostgreSQL integration
 - MongoDB integration
@@ -953,137 +1167,44 @@ CI verifies:
 - Frontend production build
 - Docker image builds
 
+The current AWS deployment does **not** automatically deploy on every Git push; deployment changes are currently performed manually on the EC2 host.
+
 ---
 
 # Security
 
-Before production deployment:
+Before treating the project as a hardened production service:
 
 - Generate a strong random JWT secret.
 - Use strong PostgreSQL credentials.
 - Keep `.env` outside version control.
-- Store API keys in managed secret storage.
-- Restrict CORS origins.
+- Store API keys in managed secret storage where appropriate.
+- Restrict CORS origins for the final public environment.
 - Use HTTPS.
 - Restrict public database access.
-- Move uploaded identity documents to managed object storage.
 - Avoid hard-coded production credentials.
 - Apply least-privilege access.
 - Enable cloud logging and monitoring.
 - Protect administrative accounts.
 - Rotate credentials when required.
+- Add API rate limiting for public endpoints.
 
----
-
-# Production Deployment on Google Cloud
-
-CricketIQ is designed to move from the local Docker environment to Google Cloud.
-
-A planned production architecture is:
-
-```text
-                         Internet
-                            │
-                            ▼
-                  ┌──────────────────┐
-                  │   React + Nginx  │
-                  │    Cloud Run     │
-                  └────────┬─────────┘
-                           │
-                           │ /api
-                           ▼
-                  ┌──────────────────┐
-                  │ FastAPI Backend  │
-                  │    Cloud Run     │
-                  └──────┬─────┬─────┘
-                         │     │
-              ┌──────────┘     └──────────┐
-              ▼                           ▼
-      ┌────────────────┐          ┌────────────────┐
-      │   Cloud SQL    │          │ MongoDB Atlas  │
-      │  PostgreSQL    │          │   MongoDB      │
-      └────────────────┘          └────────────────┘
-```
-
-Potential supporting Google Cloud services:
-
-```text
-Cloud Run
-Cloud SQL
-Artifact Registry
-Secret Manager
-Cloud Logging
-Cloud Monitoring
-```
-
-The production deployment will use environment-specific configuration and managed secrets instead of development credentials.
-
----
-
-# GCP Deployment Preparation
-
-Before deployment:
-
-1. Create a Google Cloud project.
-2. Enable billing.
-3. Enable required Google Cloud APIs.
-4. Create an Artifact Registry repository.
-5. Deploy PostgreSQL using Cloud SQL.
-6. Configure MongoDB using MongoDB Atlas.
-7. Store secrets in Secret Manager.
-8. Build and push Docker images.
-9. Deploy the FastAPI service to Cloud Run.
-10. Deploy the frontend service to Cloud Run.
-11. Configure service-to-service communication.
-12. Configure the production domain and HTTPS.
-13. Configure production historical data storage.
-14. Add logging and monitoring.
-
----
-
-# Application URLs
-
-## Local Development
-
-Frontend:
-
-```text
-http://localhost:3000
-```
-
-Backend:
-
-```text
-http://localhost:8000
-```
-
-Swagger:
-
-```text
-http://localhost:8000/docs
-```
-
-Health:
-
-```text
-http://localhost:8000/health
-```
+The deployed environment has a strong random JWT secret and keeps `.env` ignored by Git. The seed process still contains a development admin account, so the administrative credential should be changed before any serious production use.
 
 ---
 
 # Authentication
 
-Default development admin account created by the seed process:
+The seed process creates a development administrator account for local/demo workflows.
 
-```text
-Email:
-admin@cricketiq.com
+The repository intentionally does **not** publish the development password in this README.
 
-Password:
-Admin@123
-```
+Before public production use:
 
-> Change the default administrator password before production use.
+1. Change the development administrator password.
+2. Confirm administrative account protection.
+3. Use a unique production JWT secret.
+4. Review account verification rules.
 
 ---
 
@@ -1131,33 +1252,32 @@ Wickets Lost
 Target
 Match Phase
 
-            │
-            ▼
+        │
+        ▼
 
-     Strategy Lab Engine
+   Strategy Lab Engine
 
-            │
-     ┌──────┼──────┐
-     │      │      │
-     ▼      ▼      ▼
- Matchup  Bowling Scenario
- Analysis  Strategy  Model
-     │      │      │
-     └──────┼──────┘
-            │
-            ▼
-     Tactical Options
-            │
-            ▼
-   Ranked Recommendations
-            │
-            ▼
-      Decision Summary
+        │
+        ├──────────┬──────────┐
+        ▼          ▼          ▼
+     Matchup    Bowling    Scenario
+     Analysis   Strategy     Model
+        │          │          │
+        └──────────┼──────────┘
+                   │
+                   ▼
+            Tactical Options
+                   │
+                   ▼
+          Recommendation List
+                   │
+                   ▼
+            Decision Summary
 ```
 
 ---
 
-# Project Status
+# Current Project Status
 
 CricketIQ currently provides a functional full-stack application containing:
 
@@ -1165,6 +1285,8 @@ CricketIQ currently provides a functional full-stack application containing:
 - FastAPI backend
 - PostgreSQL
 - MongoDB
+- Redis
+- Celery background processing
 - JWT authentication
 - Role-based authorization
 - Historical cricket analytics
@@ -1182,25 +1304,33 @@ CricketIQ currently provides a functional full-stack application containing:
 - Strategy Lab
 - AI Analyst
 - External cricket API integration
-- Docker deployment
+- Docker deployment for local development
 - Nginx API proxy
+- AWS deployment
+- HTTPS domain
 - Automated backend testing
-- GitHub Actions CI/CD
+- GitHub Actions CI/CD validation
 
-The current development environment has been verified with:
+### Current AWS verification snapshot
 
 ```text
-13 backend tests passing
-Frontend production build passing
-Docker services running
-PostgreSQL healthy
-MongoDB connectivity verified
-Nginx → FastAPI API routing verified
-Admin authentication verified
-Strategy Lab API verified
+Public HTTPS site:        Working
+FastAPI backend:          Working
+RDS PostgreSQL:           Connected
+MongoDB:                  Connected
+Redis:                    Working
+Celery worker:            Working
+AI report persistence:    Working
+Historical datasets:      Generated
+Historical model API:     Working
+React production build:   Passing
 ```
 
-The next major phase is production deployment on Google Cloud Platform.
+### Current public application
+
+```text
+https://cricketiq.duckdns.org
+```
 
 ---
 
@@ -1208,7 +1338,7 @@ The next major phase is production deployment on Google Cloud Platform.
 
 ### Historical Data
 
-Large historical CSV files are generated or supplied separately and are intentionally excluded from Git version control.
+Large historical CSV files are generated separately and intentionally excluded from Git version control.
 
 ### Strategy Lab
 
@@ -1216,7 +1346,7 @@ Strategy Lab uses a limited candidate set to control computational cost. Its opt
 
 ### AI Analysis
 
-AI-generated outputs depend on the configured LLM provider and should be treated as assisted analysis.
+AI-generated outputs depend on the configured LLM provider. Without a usable external LLM API key, supported AI flows can use built-in fallback responses.
 
 ### External Live Data
 
@@ -1224,7 +1354,11 @@ Live match availability depends on the configured external cricket API provider 
 
 ### Production Infrastructure
 
-Cloud deployment, managed secret storage, production monitoring, and cloud-based document storage require separate production configuration.
+The current AWS deployment is a practical project/demo deployment. It still needs additional hardening for a larger production workload, including managed secret storage, centralized logging/monitoring, rate limiting, stronger isolation of supporting services, and automated deployment workflows.
+
+### Certificate Renewal
+
+Let's Encrypt certificates are installed and Certbot renewal is scheduled. The current deployment uses Certbot's standalone authenticator, which requires temporary access to port 80 during renewal. Renewal hooks are configured to stop and restart the shared Nginx container. A renewal dry-run during setup received a temporary Let's Encrypt `rateLimited / Service busy` response; the live certificates remained valid.
 
 ---
 
@@ -1232,10 +1366,10 @@ Cloud deployment, managed secret storage, production monitoring, and cloud-based
 
 Potential future improvements include:
 
-- Google Cloud production deployment
+- Automated AWS deployment through GitHub Actions
 - Real-time event streaming
-- Redis-backed caching
-- Celery background processing
+- Redis-backed application caching
+- More Celery background workloads
 - Advanced player forecasting
 - Additional machine-learning models
 - Tactical alerts
@@ -1247,6 +1381,8 @@ Potential future improvements include:
 - Production observability
 - API rate limiting
 - Advanced model calibration
+- Centralized secret management
+- Custom production domain instead of a free DuckDNS hostname
 
 ---
 
@@ -1292,17 +1428,11 @@ This separation allows individual strategy APIs to remain reusable while Strateg
 
 # License
 
-Add the selected project license here before public distribution.
-
-Example:
 
 ```text
 MIT License
 ```
 
-or another license appropriate for the project's intended usage and data dependencies.
-
----
 
 # Author
 
