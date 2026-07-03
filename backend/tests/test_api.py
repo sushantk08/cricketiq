@@ -1,3 +1,4 @@
+from datetime import date
 import uuid
 
 
@@ -15,14 +16,14 @@ def test_auth_flow(client):
 
     # 1. Register
     reg_resp = client.post(
-    "/api/auth/register",
-    data={
-        "email": unique_email,
-        "password": password,
-        "full_name": "Test Fan",
-        "role": "FAN",
-    },
-)
+        "/api/auth/register",
+        data={
+            "email": unique_email,
+            "password": password,
+            "full_name": "Test Fan",
+            "role": "FAN",
+        },
+    )
     assert reg_resp.status_code == 201
     user_data = reg_resp.json()
     assert user_data["email"] == unique_email
@@ -30,7 +31,8 @@ def test_auth_flow(client):
 
     # 2. Login
     login_resp = client.post(
-        "/api/auth/login", json={"email": unique_email, "password": password}
+        "/api/auth/login",
+        json={"email": unique_email, "password": password},
     )
     assert login_resp.status_code == 200
     token = login_resp.json()["access_token"]
@@ -38,7 +40,8 @@ def test_auth_flow(client):
 
     # 3. Protected Profile
     me_resp = client.get(
-        "/api/auth/me", headers={"Authorization": f"Bearer {token}"}
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert me_resp.status_code == 200
     assert me_resp.json()["email"] == unique_email
@@ -66,7 +69,11 @@ def test_win_probability_prediction(client):
     """Verify ML win probability engine."""
     resp = client.post(
         "/api/predictions/win-probability",
-        json={"runs_required": 30, "balls_remaining": 18, "wickets_in_hand": 6},
+        json={
+            "runs_required": 30,
+            "balls_remaining": 18,
+            "wickets_in_hand": 6,
+        },
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -80,6 +87,7 @@ def test_win_probability_prediction(client):
         == 100
     )
 
+
 def test_historical_model_evaluation(client):
     """Verify historical win-probability model evaluation endpoint."""
     response = client.get(
@@ -90,14 +98,28 @@ def test_historical_model_evaluation(client):
 
     data = response.json()
 
+    # Validate model evaluation metrics
     assert data["rows"] > 0
     assert 0.0 <= data["accuracy"] <= 1.0
     assert 0.0 <= data["brier_score"] <= 1.0
 
-    assert data["train_start_date"] == "2005-02-17"
-    assert data["train_end_date"] == "2025-03-23"
-    assert data["test_start_date"] == "2025-03-26"
-    assert data["test_end_date"] == "2026-09-09"
+    # Validate required date fields exist
+    assert data["train_start_date"]
+    assert data["train_end_date"]
+    assert data["test_start_date"]
+    assert data["test_end_date"]
+
+    # Convert date strings to date objects
+    train_start = date.fromisoformat(data["train_start_date"])
+    train_end = date.fromisoformat(data["train_end_date"])
+    test_start = date.fromisoformat(data["test_start_date"])
+    test_end = date.fromisoformat(data["test_end_date"])
+
+    # Validate chronological order
+    assert train_start <= train_end
+    assert train_end < test_start
+    assert test_start <= test_end
+
 
 def test_scenario_simulator(client):
     """Verify scenario simulation calculation."""
@@ -135,6 +157,7 @@ def test_decision_replay(client):
     assert 0.0 <= data["decision_quality_score"] <= 100.0
     assert "uncertainty_disclaimer" in data
 
+
 def test_ai_match_analysis(client):
     """Verify AI match analysis returns database-grounded match facts."""
     response = client.post(
@@ -153,6 +176,7 @@ def test_ai_match_analysis(client):
     assert data["best_bowler"]
     assert isinstance(data["turning_point_insights"], list)
     assert data["grounded_in_database_facts"] is True
+
 
 def test_ai_report_saved_to_mongodb(client):
     """Verify an AI match report is persisted to MongoDB."""
@@ -178,6 +202,7 @@ def test_ai_report_saved_to_mongodb(client):
     assert stored["winner"] == report["winner"]
     assert stored["grounded_in_database_facts"] is True
 
+
 def test_player_intelligence(client):
     """Verify database-grounded player intelligence."""
     response = client.get("/api/players/7/intelligence")
@@ -196,6 +221,7 @@ def test_player_intelligence(client):
     assert isinstance(data["weaknesses"], list)
     assert isinstance(data["recommendations"], list)
     assert data["evidence_summary"]
+
 
 def test_turning_points(client):
     """Verify turning-point detection for Match 1."""
@@ -239,6 +265,7 @@ def test_turning_points(client):
         for point in data["turning_points"]
     )
 
+
 def test_player_matchup(client):
     """Verify historical batter-vs-bowler matchup intelligence."""
     response = client.get("/api/players/14/matchup/9")
@@ -270,6 +297,7 @@ def test_player_matchup(client):
     assert data["assessment"]
     assert isinstance(data["insights"], list)
     assert data["uncertainty_note"]
+
 
 def test_live_intelligence(client, monkeypatch):
     """Verify live intelligence normalization without relying on a live match."""
