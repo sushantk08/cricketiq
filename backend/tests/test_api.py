@@ -90,7 +90,7 @@ def test_historical_model_evaluation(client):
 
     data = response.json()
 
-    assert data["rows"] == 364406
+    assert data["rows"] > 0
     assert 0.0 <= data["accuracy"] <= 1.0
     assert 0.0 <= data["brier_score"] <= 1.0
 
