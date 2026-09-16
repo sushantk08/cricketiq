@@ -501,11 +501,18 @@ def write_player_historical_dataset(
 
 def build_cricsheet_player_team_catalog() -> tuple[list[str], list[dict]]:
     """
-    Build a team and player catalog from the generated Cricsheet
-    player-history CSV.
+    Build the Cricsheet team/player catalog from the historical
+    delivery dataset.
 
-    Each player is assigned to the team they are most frequently
-    associated with in the historical dataset.
+    Each player is assigned to their most frequently associated
+    historical team.
+
+    Player roles are inferred from how the player appears in the
+    dataset:
+
+    - batter only -> BATTER
+    - bowler only -> BOWLER
+    - both batter and bowler -> ALL_ROUNDER
     """
     import pandas as pd
 
@@ -523,11 +530,19 @@ def build_cricsheet_player_team_catalog() -> tuple[list[str], list[dict]]:
 
     df = pd.read_csv(
         dataset_path,
-        usecols=["teams", "batting_team", "batter", "bowler"],
+        usecols=[
+            "teams",
+            "batting_team",
+            "batter",
+            "bowler",
+        ],
     )
 
     team_names: set[str] = set()
+
     player_team_counts: dict[str, dict[str, int]] = {}
+
+    player_role_flags: dict[str, dict[str, bool]] = {}
 
     for _, row in df.iterrows():
         teams_value = row.get("teams")
@@ -535,7 +550,11 @@ def build_cricsheet_player_team_catalog() -> tuple[list[str], list[dict]]:
         batter = row.get("batter")
         bowler = row.get("bowler")
 
-        match_teams = set()
+        match_teams: set[str] = set()
+
+        # ---------------------------------------------------------
+        # Match teams
+        # ---------------------------------------------------------
 
         if pd.notna(teams_value):
             match_teams = {
@@ -543,7 +562,12 @@ def build_cricsheet_player_team_catalog() -> tuple[list[str], list[dict]]:
                 for team in str(teams_value).split("|")
                 if team.strip()
             }
+
             team_names.update(match_teams)
+
+        # ---------------------------------------------------------
+        # Batter
+        # ---------------------------------------------------------
 
         if pd.notna(batter) and pd.notna(batting_team):
             player = str(batter).strip()
@@ -551,9 +575,24 @@ def build_cricsheet_player_team_catalog() -> tuple[list[str], list[dict]]:
 
             if player and team:
                 player_team_counts.setdefault(player, {})
+
                 player_team_counts[player][team] = (
                     player_team_counts[player].get(team, 0) + 1
                 )
+
+                player_role_flags.setdefault(
+                    player,
+                    {
+                        "batter": False,
+                        "bowler": False,
+                    },
+                )
+
+                player_role_flags[player]["batter"] = True
+
+        # ---------------------------------------------------------
+        # Bowler
+        # ---------------------------------------------------------
 
         if pd.notna(bowler) and match_teams and pd.notna(batting_team):
             player = str(bowler).strip()
@@ -568,23 +607,62 @@ def build_cricsheet_player_team_catalog() -> tuple[list[str], list[dict]]:
                 team = bowling_teams[0]
 
                 player_team_counts.setdefault(player, {})
+
                 player_team_counts[player][team] = (
                     player_team_counts[player].get(team, 0) + 1
                 )
 
+                player_role_flags.setdefault(
+                    player,
+                    {
+                        "batter": False,
+                        "bowler": False,
+                    },
+                )
+
+                player_role_flags[player]["bowler"] = True
+
+    # -------------------------------------------------------------
+    # Build player catalog
+    # -------------------------------------------------------------
+
     players = []
 
     for player_name, team_counts in player_team_counts.items():
-        primary_team = max(team_counts, key=team_counts.get)
+        primary_team = max(
+            team_counts,
+            key=team_counts.get,
+        )
+
+        role_flags = player_role_flags.get(
+            player_name,
+            {
+                "batter": False,
+                "bowler": False,
+            },
+        )
+
+        is_batter = role_flags["batter"]
+        is_bowler = role_flags["bowler"]
+
+        if is_batter and is_bowler:
+            role = "ALL_ROUNDER"
+        elif is_bowler:
+            role = "BOWLER"
+        else:
+            role = "BATTER"
 
         players.append(
             {
                 "name": player_name,
                 "team": primary_team,
+                "role": role,
             }
         )
 
-    players.sort(key=lambda item: item["name"].lower())
+    players.sort(
+        key=lambda item: item["name"].lower()
+    )
 
     return sorted(team_names), players
 
@@ -593,7 +671,8 @@ def import_cricsheet_catalog(db) -> tuple[int, int]:
     Import Cricsheet teams and players into the CricketIQ database.
 
     Existing teams and players are reused by name. New players are
-    assigned to their most frequently associated historical team.
+    assigned to their most frequently associated historical team and
+    their role is inferred from their historical batting/bowling usage.
     """
     from backend.app.models.cricket import Player, Team
 
@@ -610,13 +689,16 @@ def import_cricsheet_catalog(db) -> tuple[int, int]:
 
         if not team:
             short_name = "".join(
-                part[0] for part in team_name.split() if part
+                part[0]
+                for part in team_name.split()
+                if part
             ).upper()[:6]
 
             team = Team(
                 name=team_name,
                 short_name=short_name or team_name[:3].upper(),
             )
+
             db.add(team)
             db.flush()
 
@@ -627,6 +709,7 @@ def import_cricsheet_catalog(db) -> tuple[int, int]:
     for player_data in players:
         player_name = player_data["name"]
         team_name = player_data["team"]
+        role = player_data.get("role", "BATTER")
 
         existing_player = (
             db.query(Player)
@@ -642,7 +725,7 @@ def import_cricsheet_catalog(db) -> tuple[int, int]:
         db.add(
             Player(
                 name=player_name,
-                role="BATTER",
+                role=role,
                 batting_style=None,
                 bowling_style=None,
                 team_id=team.id if team else None,

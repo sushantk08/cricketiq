@@ -89,11 +89,7 @@ export default function StrategyLabPage() {
     }
   }
 
-  useEffect(() => {
-    if (!initialLoading && batterId && bowlingTeamId) {
-      runStrategyLab()
-    }
-  }, [initialLoading])
+
 
   const getRiskColor = (risk) => {
     switch (risk) {

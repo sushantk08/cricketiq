@@ -218,18 +218,34 @@ def seed_cricket_data():
         )
 
         # 2c. Create default admin account
-        admin = User(
-            email="admin@cricketiq.com",
-            hashed_password=hash_password("Admin@123"),
-            full_name="CricketIQ Admin",
-            role=UserRole.ADMIN,
-            verification_status=VerificationStatus.APPROVED.value,
+                # 2c. Create default admin account if it does not already exist
+        admin = (
+            db.query(User)
+            .filter(User.email == "admin@cricketiq.com")
+            .first()
         )
 
-        db.add(admin)
-        db.commit()
+        if not admin:
+            admin = User(
+                email="admin@cricketiq.com",
+                hashed_password=hash_password("Admin@123"),
+                full_name="CricketIQ Admin",
+                role=UserRole.ADMIN,
+                verification_status=VerificationStatus.APPROVED.value,
+            )
 
-        print("Default admin account created: admin@cricketiq.com")
+            db.add(admin)
+            db.commit()
+
+            print(
+                "Default admin account created: "
+                "admin@cricketiq.com"
+            )
+        else:
+            print(
+                "Default admin account already exists: "
+                "admin@cricketiq.com"
+            )
 
         # 3. Create Venue
         venue = Venue(
